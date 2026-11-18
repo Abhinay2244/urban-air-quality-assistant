@@ -39,4 +39,32 @@ describe('useProfile hook', () => {
 
     expect(result.current.fieldErrors.city).toBeUndefined();
   });
+
+  it('replaces whole profile atomically and clears validationError', () => {
+    const { result } = renderHook(() => useProfile());
+
+    act(() => {
+      result.current.updateField('city', 'A');
+    });
+    act(() => {
+      result.current.validateProfile();
+    });
+    expect(result.current.validationError).not.toBeNull();
+
+    act(() => {
+      result.current.clearValidationError();
+    });
+    expect(result.current.validationError).toBeNull();
+
+    act(() => {
+      result.current.replaceProfile({
+        ...result.current.profile,
+        city: '  Beijing  ',
+        commuteMode: CommuteMode.WALK_OR_BIKE,
+      });
+    });
+    expect(result.current.profile.city).toBe('Beijing');
+    expect(result.current.profile.commuteMode).toBe(CommuteMode.WALK_OR_BIKE);
+    expect(result.current.fieldErrors.city).toBeUndefined();
+  });
 });

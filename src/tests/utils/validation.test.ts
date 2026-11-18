@@ -5,8 +5,8 @@ import { AQICategoryId, RecommendationCategory } from '../../types/index.ts';
 import { parseAndValidateAssistantResponse, readStringField } from '../../utils/assistantParser.ts';
 import { buildAssistantPrompt } from '../../utils/promptBuilder.ts';
 import { sanitizeText } from '../../utils/sanitizing.ts';
+import { isOneOf, isRecord } from '../../utils/typeGuards.ts';
 import {
-  isRecord,
   unwrapValidation,
   validateAQIData,
   validateCity,
@@ -43,10 +43,12 @@ describe('sanitizing and validation utilities', () => {
     expect(badFlag.isValid).toBe(false);
   });
 
-  it('validates AQIData, manual AQI, optional PM2.5, isRecord, and unwrapValidation', () => {
+  it('validates AQIData, manual AQI, optional PM2.5, isRecord, isOneOf, and unwrapValidation', () => {
     expect(isRecord({ a: 1 })).toBe(true);
     expect(isRecord([1, 2])).toBe(false);
     expect(isRecord(null)).toBe(false);
+    expect(isOneOf('GOOD', Object.values(AQICategoryId))).toBe(true);
+    expect(isOneOf('INVALID', Object.values(AQICategoryId))).toBe(false);
 
     expect(
       validateAQIData({

@@ -24,6 +24,7 @@ const SAMPLE_AQI_DATA: AQIData = {
 describe('geminiService', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('returns validated structured recommendations from the API endpoint', async () => {

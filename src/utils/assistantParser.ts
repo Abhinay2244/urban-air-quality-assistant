@@ -7,9 +7,9 @@ import {
 } from '../types/index.ts';
 import { clampRounded } from './math.ts';
 import { sanitizeText } from './sanitizing.ts';
-import { isRecord } from './validation.ts';
+import { isOneOf, isRecord } from './typeGuards.ts';
 
-const VALID_CATEGORIES: readonly string[] = Object.values(RecommendationCategory);
+const VALID_CATEGORIES: readonly RecommendationCategory[] = Object.values(RecommendationCategory);
 
 /**
  * Extracts and sanitizes a string field, returning an empty string for non-strings.
@@ -22,10 +22,7 @@ export function readStringField(value: unknown, maxLen: number): string {
 }
 
 function parseCategory(value: unknown): RecommendationCategory {
-  if (typeof value === 'string' && VALID_CATEGORIES.includes(value)) {
-    return value as RecommendationCategory;
-  }
-  return RecommendationCategory.DAILY_ROUTINE;
+  return isOneOf(value, VALID_CATEGORIES) ? value : RecommendationCategory.DAILY_ROUTINE;
 }
 
 function normalizeRecommendation(raw: unknown): Recommendation | null {

@@ -15,7 +15,15 @@ import type { UserProfile } from './types/index.ts';
  * Root application shell composing header, hero, responsive two-column workspace, and footer.
  */
 export default function App(): ReactElement {
-  const { profile, validationError, fieldErrors, updateField, validateProfile } = useProfile();
+  const {
+    profile,
+    validationError,
+    fieldErrors,
+    updateField,
+    replaceProfile,
+    validateProfile,
+    clearValidationError,
+  } = useProfile();
   const {
     aqiData,
     assistantResponse,
@@ -45,10 +53,17 @@ export default function App(): ReactElement {
   };
 
   const handleSelectSample = (sampleProfile: UserProfile): void => {
-    (Object.keys(sampleProfile) as Array<keyof UserProfile>).forEach((key) => {
-      updateField(key, sampleProfile[key]);
-    });
-    void generatePlan(sampleProfile);
+    const validProfile = replaceProfile(sampleProfile);
+    if (validProfile) {
+      void generatePlan(validProfile);
+    }
+  };
+
+  const activeError = validationError ?? error;
+  const canRetry = !validationError && Boolean(error);
+  const handleDismissError = (): void => {
+    clearValidationError();
+    clearError();
   };
 
   return (
@@ -77,9 +92,9 @@ export default function App(): ReactElement {
         </section>
 
         <ErrorBanner
-          error={validationError ?? error}
-          onRetry={error ? () => void retryLastRequest() : undefined}
-          onDismiss={clearError}
+          error={activeError}
+          onRetry={canRetry ? () => void retryLastRequest() : undefined}
+          onDismiss={handleDismissError}
         />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">

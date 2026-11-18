@@ -41,7 +41,7 @@ flowchart LR
 - `src/components/` — Reusable presentational UI primitives (`AqiGauge`, `ProgressBar`, `ErrorBanner`, `ThemeToggle`, `SectionCard`, inline SVG icons).
 - `src/constants/` — Centralized AQI thresholds, Gemini prompts/fallback, UI theme tokens, sample profiles, rate limits, and error strings.
 - `src/features/` — Domain feature views split into `profile/`, `impact/`, and `assistant/`.
-- `src/hooks/` — Custom state orchestration hooks (`useProfile`, `useAssistant`) with request abort and submit cooldown handling.
+- `src/hooks/` — Custom state orchestration hooks (`useProfile`, `useAssistant`) with mode-preserving retry and submit cooldown handling.
 - `src/services/` — Typed browser API clients (`aqiService.ts`, `geminiService.ts`, `httpClient.ts`) using runtime payload type guards.
 - `src/types/` — Shared TypeScript interfaces and `as const` enum-like constants compatible with strict TypeScript and Node type-stripping.
 - `src/utils/` — Pure helpers for validation (`isRecord`, `validateCity`), text sanitization, AQI math, formatting, prompt building, JSON parsing, and `applyUrgencyRules`.
@@ -51,7 +51,7 @@ flowchart LR
 
 - **Zero Client Secrets**: `GEMINI_API_KEY` and optional `AQI_API_KEY` are read exclusively on the Express server and never bundled, logged, or returned in API errors.
 - **HTTP Headers & CSP**: `applySecurityHeaders` sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and environment-specific `Content-Security-Policy` headers.
-- **Abuse Controls**: `createApiRateLimiter` enforces a per-IP fixed window (`30` requests / `60s` on `/api`) returning `429` with `Retry-After`, alongside a `16kb` Express JSON body limit.
+- **Abuse Controls**: `app.set('trust proxy', 1)` resolves client IPs behind reverse proxies, while `createApiRateLimiter` enforces a bounded per-IP fixed window (`30` requests / `60s` on `/api`, `429` with `Retry-After`) alongside a `16kb` Express JSON body limit.
 - **Input & Output Hardening**: Strict boundary validation (`validateUserProfile`, `validateAQIData`, `validateManualAqi`), control-character stripping (`sanitizeText`), and React plain-text rendering without `dangerouslySetInnerHTML`.
 
 ## Accessibility
@@ -81,14 +81,15 @@ bun run dev        # or: npm run dev
 3. Run checks or build for production:
 
 ```bash
-bun run lint       # or: npm run lint
-bun run test       # or: npm run test
-bun run build      # or: npm run build
-bun run start      # or: npm run start (serves dist/ on port 3000)
+bun run lint         # or: npm run lint
+bun run format:check # or: npm run format:check
+bun run test         # or: npm run test
+bun run build        # or: npm run build
+bun run start        # or: npm run start (serves dist/ in production on port 3000)
 ```
 
 ## Assumptions & Limitations
 
 - PM2.5 exposure reduction percentages are heuristic estimates for educational planning rather than clinical or sensor-calibrated measurements.
 - Open-Meteo and WAQI availability varies by city; manual AQI entry ensures resilience when external APIs fail or rate-limit.
-- The per-IP rate limiter stores counters in process memory, so counters reset when the server restarts and assume single-instance deployment.
+- The per-IP rate limiter stores counters in process memory (pruned when exceeding `MAX_TRACKED_IPS`) and assumes `trust proxy = 1` behind a single reverse-proxy hop; counters reset on server restart and are not shared across multiple instances.

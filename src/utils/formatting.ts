@@ -1,14 +1,7 @@
 import { APP_TEXT } from '../constants/config.ts';
-import { RecommendationCategory, UrgencyLevel } from '../types/index.ts';
+import { UrgencyLevel } from '../types/index.ts';
 
 const DECIMAL_PLACES = 1;
-
-const RECOMMENDATION_CATEGORY_LABELS: Record<RecommendationCategory, string> = {
-  [RecommendationCategory.DAILY_ROUTINE]: 'Daily Routine (Low-Emission)',
-  [RecommendationCategory.INDOOR_AIR]: 'Indoor Air Hacks',
-  [RecommendationCategory.SUSTAINABLE_ALTERNATIVE]: 'Sustainable Alternatives',
-  [RecommendationCategory.HEALTH_ALERT]: 'Health Alerts',
-};
 
 const URGENCY_LABELS: Record<UrgencyLevel, string> = {
   [UrgencyLevel.CRITICAL]: 'Urgent Priority',
@@ -33,13 +26,6 @@ export function formatTimestamp(isoString: string): string {
     return isoString;
   }
   return date.toLocaleString();
-}
-
-/**
- * Maps a RecommendationCategory value to a human-readable label.
- */
-export function formatCategoryLabel(category: RecommendationCategory): string {
-  return RECOMMENDATION_CATEGORY_LABELS[category];
 }
 
 /**

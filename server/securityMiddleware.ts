@@ -15,6 +15,29 @@ interface RateLimitEntry {
 
 const UNKNOWN_IP = 'unknown';
 
+function pruneExpiredEntries(
+  hits: Map<string, RateLimitEntry>,
+  now: number,
+  maxEntries: number,
+): void {
+  if (hits.size < maxEntries) {
+    return;
+  }
+
+  for (const [key, entry] of hits.entries()) {
+    if (now >= entry.resetAt) {
+      hits.delete(key);
+    }
+  }
+
+  if (hits.size >= maxEntries) {
+    const oldestKey = hits.keys().next().value;
+    if (oldestKey !== undefined) {
+      hits.delete(oldestKey);
+    }
+  }
+}
+
 /**
  * Express middleware setting baseline HTTP security headers and Vite-compatible CSP.
  */
@@ -30,11 +53,13 @@ export function applySecurityHeaders(isProduction: boolean): RequestHandler {
 }
 
 /**
- * Creates an in-memory per-IP fixed-window rate limiter middleware for /api routes.
+ * Creates an in-memory per-IP fixed-window rate limiter middleware for /api routes
+ * with bounded map pruning to prevent unbounded memory growth.
  */
 export function createApiRateLimiter(
   maxRequests: number = RATE_LIMIT_CONFIG.MAX_REQUESTS,
   windowMs: number = RATE_LIMIT_CONFIG.WINDOW_MS,
+  maxEntries: number = RATE_LIMIT_CONFIG.MAX_TRACKED_IPS,
 ): RequestHandler {
   const hits = new Map<string, RateLimitEntry>();
 
@@ -44,6 +69,7 @@ export function createApiRateLimiter(
     const current = hits.get(clientIp);
 
     if (!current || now >= current.resetAt) {
+      pruneExpiredEntries(hits, now, maxEntries);
       hits.set(clientIp, { count: 1, resetAt: now + windowMs });
       next();
       return;

@@ -31,7 +31,13 @@ export async function fetchJsonOrThrow<T>(
     throw createAppError(fallbackCode, fallbackMessage);
   }
 
-  const raw: unknown = await response.json();
+  let raw: unknown;
+  try {
+    raw = await response.json();
+  } catch {
+    throw createAppError(fallbackCode, fallbackMessage);
+  }
+
   if (!guard(raw)) {
     throw createAppError(fallbackCode, fallbackMessage);
   }

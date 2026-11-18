@@ -9,7 +9,6 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
     label: 'Good',
     minAqi: 0,
     maxAqi: 50,
-    badgeClass: 'bg-green-100 text-green-900 border-green-300',
     healthGuidance:
       'Air quality is satisfactory. Normal outdoor routines and natural ventilation are safe.',
   },
@@ -18,7 +17,6 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
     label: 'Moderate',
     minAqi: 51,
     maxAqi: 100,
-    badgeClass: 'bg-yellow-100 text-yellow-900 border-yellow-400',
     healthGuidance:
       'Air quality is acceptable, though unusually sensitive individuals should monitor symptoms.',
   },
@@ -27,7 +25,6 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
     label: 'Unhealthy for Sensitive Groups',
     minAqi: 101,
     maxAqi: 150,
-    badgeClass: 'bg-orange-100 text-orange-900 border-orange-300',
     healthGuidance:
       'Children, older adults, and people with respiratory conditions should limit prolonged outdoor exertion.',
   },
@@ -36,7 +33,6 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
     label: 'Unhealthy',
     minAqi: 151,
     maxAqi: 200,
-    badgeClass: 'bg-red-100 text-red-900 border-red-300',
     healthGuidance:
       'Everyone may begin to experience health effects. Shift strenuous activities indoors and run HEPA filtration.',
   },
@@ -45,7 +41,6 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
     label: 'Very Unhealthy',
     minAqi: 201,
     maxAqi: 300,
-    badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',
     healthGuidance:
       'Health alert: seal drafts, run indoor air purifiers continuously, and wear N95 masks for essential trips.',
   },
@@ -54,7 +49,6 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
     label: 'Hazardous',
     minAqi: 301,
     maxAqi: 500,
-    badgeClass: 'bg-rose-950 text-rose-50 border-rose-800',
     healthGuidance:
       'Emergency conditions. Remain indoors with clean-air rooms, avoid all outdoor exertion, and monitor vulnerable family members.',
   },
@@ -67,7 +61,6 @@ export const AQI_THRESHOLDS = {
   SENSITIVE: 101,
   UNHEALTHY: 151,
   SEVERE: 201,
-  HAZARDOUS: 301,
 } as const;
 
 /**

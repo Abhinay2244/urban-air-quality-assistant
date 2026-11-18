@@ -1,5 +1,6 @@
-import { API_ENDPOINTS, SERVER_CONFIG } from '../src/constants/limits.ts';
-import { isRecord } from '../src/utils/validation.ts';
+import { API_ENDPOINTS, DEFAULT_COUNTRY, SERVER_CONFIG } from '../src/constants/limits.ts';
+import { isRecord } from '../src/utils/typeGuards.ts';
+import { logServerError } from './errorResponse.ts';
 
 /**
  * Normalized air quality response returned by external AQI providers.
@@ -15,8 +16,6 @@ export interface LiveAqiPayload {
   updatedAt: string;
 }
 
-const DEFAULT_COUNTRY = 'Unknown';
-
 function readNumber(record: Record<string, unknown> | undefined, key: string): number | undefined {
   if (!record) return undefined;
   const val = record[key];
@@ -29,15 +28,27 @@ function readNestedMetric(iaqi: Record<string, unknown> | undefined, key: string
   return isRecord(metric) ? (readNumber(metric, 'v') ?? 0) : 0;
 }
 
+async function parseJsonResponse(res: Response, context: string): Promise<unknown> {
+  if (!res.ok) {
+    logServerError(context, new Error(`Upstream HTTP ${res.status}`));
+    return null;
+  }
+
+  try {
+    return await res.json();
+  } catch (error: unknown) {
+    logServerError(context, error);
+    return null;
+  }
+}
+
 /**
  * Queries the WAQI feed API when an AQI_API_KEY is configured.
  */
 export async function fetchFromWaqi(city: string, apiKey: string): Promise<LiveAqiPayload | null> {
   const url = `${API_ENDPOINTS.WAQI_FEED}/${encodeURIComponent(city)}/?token=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(SERVER_CONFIG.PROVIDER_TIMEOUT_MS) });
-  if (!res.ok) return null;
-
-  const raw: unknown = await res.json();
+  const raw = await parseJsonResponse(res, 'WAQI Provider');
   if (!isRecord(raw) || raw.status !== 'ok' || !isRecord(raw.data)) return null;
 
   const aqi = readNumber(raw.data, 'aqi');
@@ -68,9 +79,9 @@ export async function fetchFromOpenMeteo(
   const signal = AbortSignal.timeout(SERVER_CONFIG.PROVIDER_TIMEOUT_MS);
   const geoUrl = `${API_ENDPOINTS.GEOCODING}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
   const geoRes = await fetch(geoUrl, { signal });
-  if (!geoRes.ok) return null;
+  const geoRaw = await parseJsonResponse(geoRes, 'Open-Meteo Geocoding');
+  if (geoRaw === null) return null;
 
-  const geoRaw: unknown = await geoRes.json();
   const loc = isRecord(geoRaw) && Array.isArray(geoRaw.results) ? geoRaw.results[0] : undefined;
   if (!isRecord(loc)) return 'not_found';
 
@@ -82,9 +93,7 @@ export async function fetchFromOpenMeteo(
   const aqiRes = await fetch(aqiUrl, {
     signal: AbortSignal.timeout(SERVER_CONFIG.PROVIDER_TIMEOUT_MS),
   });
-  if (!aqiRes.ok) return null;
-
-  const aqiRaw: unknown = await aqiRes.json();
+  const aqiRaw = await parseJsonResponse(aqiRes, 'Open-Meteo Air Quality');
   const current = isRecord(aqiRaw) && isRecord(aqiRaw.current) ? aqiRaw.current : undefined;
   const usAqi = readNumber(current, 'us_aqi');
   if (usAqi === undefined) return null;

@@ -11,9 +11,7 @@ import {
 } from '../types/index.ts';
 import { createAppError } from './errors.ts';
 import { sanitizeText } from './sanitizing.ts';
-import { isRecord } from './typeGuards.ts';
-
-export { isRecord } from './typeGuards.ts';
+import { isOneOf, isRecord } from './typeGuards.ts';
 
 /**
  * Result returned by validation helpers.
@@ -24,17 +22,13 @@ export interface ValidationResult<T> {
   error?: AppError;
 }
 
-const FAMILY_VALUES: readonly string[] = Object.values(FamilyType);
-const COMMUTE_VALUES: readonly string[] = Object.values(CommuteMode);
-const HOME_VALUES: readonly string[] = Object.values(HomeType);
-const AQI_CATEGORY_VALUES: readonly string[] = Object.values(AQICategoryId);
+const FAMILY_VALUES: readonly FamilyType[] = Object.values(FamilyType);
+const COMMUTE_VALUES: readonly CommuteMode[] = Object.values(CommuteMode);
+const HOME_VALUES: readonly HomeType[] = Object.values(HomeType);
+const AQI_CATEGORY_VALUES: readonly AQICategoryId[] = Object.values(AQICategoryId);
 
 function fail<T>(value: T, message: string): ValidationResult<T> {
   return { isValid: false, value, error: createAppError(ErrorCode.VALIDATION_ERROR, message) };
-}
-
-function isEnumValue(val: unknown, allowed: readonly string[]): val is string {
-  return typeof val === 'string' && allowed.includes(val);
 }
 
 function isBoundedFinite(val: unknown, max: number): val is number {
@@ -97,12 +91,10 @@ export function validateUserProfile(profile: unknown): ValidationResult<UserProf
   if (!isRecord(profile) || typeof profile.city !== 'string') {
     return fail(DEFAULT_USER_PROFILE, ERROR_MESSAGES.INVALID_REQUEST_BODY);
   }
-  const validEnums =
-    isEnumValue(profile.familyType, FAMILY_VALUES) &&
-    isEnumValue(profile.commuteMode, COMMUTE_VALUES) &&
-    isEnumValue(profile.homeType, HOME_VALUES);
   if (
-    !validEnums ||
+    !isOneOf(profile.familyType, FAMILY_VALUES) ||
+    !isOneOf(profile.commuteMode, COMMUTE_VALUES) ||
+    !isOneOf(profile.homeType, HOME_VALUES) ||
     typeof profile.hasChildren !== 'boolean' ||
     typeof profile.hasElderly !== 'boolean' ||
     typeof profile.hasRespiratoryCondition !== 'boolean'
@@ -113,12 +105,12 @@ export function validateUserProfile(profile: unknown): ValidationResult<UserProf
   const cityResult = validateCity(profile.city);
   const sanitized: UserProfile = {
     city: cityResult.value,
-    familyType: profile.familyType as FamilyType,
+    familyType: profile.familyType,
     hasChildren: profile.hasChildren,
     hasElderly: profile.hasElderly,
     hasRespiratoryCondition: profile.hasRespiratoryCondition,
-    commuteMode: profile.commuteMode as CommuteMode,
-    homeType: profile.homeType as HomeType,
+    commuteMode: profile.commuteMode,
+    homeType: profile.homeType,
   };
   return cityResult.isValid
     ? { isValid: true, value: sanitized }
@@ -140,6 +132,6 @@ export function validateAQIData(data: unknown): data is AQIData {
     isBoundedFinite(data.no2, Number.MAX_SAFE_INTEGER) &&
     isBoundedFinite(data.o3, Number.MAX_SAFE_INTEGER) &&
     typeof data.updatedAt === 'string' &&
-    isEnumValue(data.category, AQI_CATEGORY_VALUES)
+    isOneOf(data.category, AQI_CATEGORY_VALUES)
   );
 }

@@ -1,4 +1,5 @@
 import { CommuteMode, FamilyType, HomeType, type UserProfile } from '../types/index.ts';
+import { DEFAULT_COUNTRY } from './limits.ts';
 
 export { API_ENDPOINTS, ERROR_MESSAGES, INPUT_LIMITS } from './limits.ts';
 
@@ -11,8 +12,6 @@ export const APP_TEXT = {
     'Tailored low-emission routines, indoor air strategies, and measurable exposure guidance for winter smog.',
   SUBMIT_LABEL: 'Get Air Quality Plan',
   LOADING_LABEL: 'Analyzing local air & generating plan...',
-  COOLDOWN_PREFIX: 'Please wait',
-  COOLDOWN_SUFFIX: 's before submitting again',
   EMPTY_PLAN_MESSAGE:
     'Enter your city and household profile above to generate a four-part winter smog action plan.',
   EMPTY_CATEGORY_MESSAGE: 'No additional actions needed for this section at the current AQI level.',
@@ -26,7 +25,7 @@ export const APP_TEXT = {
     'Guidance estimates personal PM2.5 exposure and emission reductions for educational planning; consult local public health authorities during emergencies.',
   PM25_UNIT: 'ug/m3',
   REDUCTION_PERCENT_UNIT: '%',
-  DEFAULT_COUNTRY: 'Unknown',
+  DEFAULT_COUNTRY,
 } as const;
 
 /**
@@ -71,7 +70,6 @@ export const PROFILE_OPTIONS = {
  * UI labels and section titles shared across presentational components.
  */
 export const UI_LABELS = {
-  PROFILE_SECTION_TITLE: 'Household Profile',
   IMPACT_SECTION_TITLE: 'Current Air Quality & Impact',
   ASSISTANT_SECTION_TITLE: 'Tailored Action Plan',
   CITY_LABEL: 'City',
@@ -91,7 +89,6 @@ export const UI_LABELS = {
   COMBINED_REDUCTION_LABEL: 'Total Estimated PM2.5 Reduction',
   PRIORITY_LABEL: 'Top Priority Today',
   IMPACT_EXPLANATION_LABEL: 'Direct impact',
-  PM25_REDUCTION_LABEL: 'Estimated PM2.5 reduction',
   WHO_GUIDELINE_LABEL: 'WHO 24h guideline:',
   MANUAL_AQI_INPUT_LABEL: 'Current US AQI (0–500)',
   MANUAL_PM25_INPUT_LABEL: 'Optional PM2.5 (ug/m3)',

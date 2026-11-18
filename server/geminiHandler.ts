@@ -11,7 +11,8 @@ import {
   ASSISTANT_SYSTEM_INSTRUCTION,
 } from '../src/constants/prompts.ts';
 import { buildAssistantPrompt } from '../src/utils/promptBuilder.ts';
-import { isRecord, validateAQIData, validateUserProfile } from '../src/utils/validation.ts';
+import { isRecord } from '../src/utils/typeGuards.ts';
+import { validateAQIData, validateUserProfile } from '../src/utils/validation.ts';
 import { logServerError, mapGeminiUpstreamError, sendErrorResponse } from './errorResponse.ts';
 
 const ASSISTANT_RESPONSE_SCHEMA: Schema = {

@@ -16,7 +16,9 @@ export interface UseProfileResult {
   validationError: AppError | null;
   fieldErrors: ProfileFieldErrors;
   updateField: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
+  replaceProfile: (next: UserProfile) => UserProfile | null;
   validateProfile: () => UserProfile | null;
+  clearValidationError: () => void;
 }
 
 /**
@@ -26,6 +28,8 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
   const [validationError, setValidationError] = useState<AppError | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
+
+  const clearValidationError = useCallback((): void => setValidationError(null), []);
 
   const updateField = useCallback(
     <K extends keyof UserProfile>(field: K, value: UserProfile[K]): void => {
@@ -46,8 +50,8 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
     [],
   );
 
-  const validateProfile = useCallback((): UserProfile | null => {
-    const result = validateUserProfile(profile);
+  const replaceProfile = useCallback((next: UserProfile): UserProfile | null => {
+    const result = validateUserProfile(next);
     if (!result.isValid || result.error) {
       setValidationError(result.error ?? null);
       setFieldErrors((prev) => ({ ...prev, city: result.error }));
@@ -58,13 +62,19 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
     setFieldErrors({});
     setProfile(result.value);
     return result.value;
-  }, [profile]);
+  }, []);
+
+  const validateProfile = useCallback((): UserProfile | null => {
+    return replaceProfile(profile);
+  }, [profile, replaceProfile]);
 
   return {
     profile,
     validationError,
     fieldErrors,
     updateField,
+    replaceProfile,
     validateProfile,
+    clearValidationError,
   };
 }

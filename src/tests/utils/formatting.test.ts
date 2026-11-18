@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { RecommendationCategory } from '../../types/index.ts';
-import { formatCategoryLabel, formatPM25Value } from '../../utils/formatting.ts';
+import { formatPM25Value, formatUrgencyLabel } from '../../utils/formatting.ts';
+import { UrgencyLevel } from '../../types/index.ts';
 
 describe('formatting utilities', () => {
   it('formats PM2.5 readings with units and guards negative numbers', () => {
@@ -8,11 +8,9 @@ describe('formatting utilities', () => {
     expect(formatPM25Value(-5)).toBe('0.0 ug/m3');
   });
 
-  it('maps recommendation categories to readable labels', () => {
-    expect(formatCategoryLabel(RecommendationCategory.INDOOR_AIR)).toBe('Indoor Air Hacks');
-    expect(formatCategoryLabel(RecommendationCategory.SUSTAINABLE_ALTERNATIVE)).toBe(
-      'Sustainable Alternatives',
-    );
-    expect(formatCategoryLabel(RecommendationCategory.HEALTH_ALERT)).toBe('Health Alerts');
+  it('maps urgency levels to readable labels', () => {
+    expect(formatUrgencyLabel(UrgencyLevel.CRITICAL)).toBe('Urgent Priority');
+    expect(formatUrgencyLabel(UrgencyLevel.HIGH)).toBe('High Priority');
+    expect(formatUrgencyLabel(UrgencyLevel.STANDARD)).toBe('Standard');
   });
 });

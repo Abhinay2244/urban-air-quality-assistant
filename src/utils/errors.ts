@@ -1,11 +1,7 @@
 import { type AppError, ErrorCode } from '../types/index.ts';
-import { isRecord } from './typeGuards.ts';
+import { isOneOf, isRecord } from './typeGuards.ts';
 
-const VALID_ERROR_CODES: readonly string[] = Object.values(ErrorCode);
-
-function isErrorCode(value: unknown): value is ErrorCode {
-  return typeof value === 'string' && VALID_ERROR_CODES.includes(value);
-}
+const VALID_ERROR_CODES: readonly ErrorCode[] = Object.values(ErrorCode);
 
 /**
  * Creates a typed, user-friendly application error object.
@@ -22,7 +18,7 @@ export function isAppError(value: unknown): value is AppError {
     return false;
   }
 
-  return isErrorCode(value.code) && typeof value.message === 'string';
+  return isOneOf(value.code, VALID_ERROR_CODES) && typeof value.message === 'string';
 }
 
 /**
@@ -35,10 +31,6 @@ export function toAppError(
 ): AppError {
   if (isAppError(error)) {
     return error;
-  }
-
-  if (error instanceof Error) {
-    return createAppError(fallbackCode, fallbackMessage, error.message);
   }
 
   return createAppError(fallbackCode, fallbackMessage);

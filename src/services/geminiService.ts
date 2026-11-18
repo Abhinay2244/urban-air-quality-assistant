@@ -7,12 +7,8 @@ import {
 } from '../types/index.ts';
 import { parseAndValidateAssistantResponse } from '../utils/assistantParser.ts';
 import { createAppError, toAppError } from '../utils/errors.ts';
-import {
-  isRecord,
-  unwrapValidation,
-  validateAQIData,
-  validateUserProfile,
-} from '../utils/validation.ts';
+import { isRecord } from '../utils/typeGuards.ts';
+import { unwrapValidation, validateAQIData, validateUserProfile } from '../utils/validation.ts';
 import { fetchJsonOrThrow } from './httpClient.ts';
 
 interface ServerAssistantPayload {

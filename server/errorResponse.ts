@@ -1,8 +1,7 @@
 import type { Response } from 'express';
-import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/limits.ts';
-import { isRecord } from '../src/utils/validation.ts';
-
-type ServerErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+import { ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/limits.ts';
+import type { ErrorCode } from '../src/types/index.ts';
+import { isRecord } from '../src/utils/typeGuards.ts';
 
 /**
  * Sends a standardized typed error JSON payload to the client without leaking internal details.
@@ -10,7 +9,7 @@ type ServerErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 export function sendErrorResponse(
   res: Response,
   status: number,
-  code: ServerErrorCode,
+  code: ErrorCode,
   message: string,
 ): void {
   res.status(status).json({ code, message });

@@ -2,8 +2,8 @@ import { API_ENDPOINTS, APP_TEXT, ERROR_MESSAGES } from '../constants/config.ts'
 import { type AQIData, ErrorCode } from '../types/index.ts';
 import { getAQICategoryByValue } from '../utils/aqiCalculations.ts';
 import { toAppError } from '../utils/errors.ts';
+import { isRecord } from '../utils/typeGuards.ts';
 import {
-  isRecord,
   unwrapValidation,
   validateCity,
   validateManualAqi,

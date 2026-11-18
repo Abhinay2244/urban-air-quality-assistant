@@ -5,6 +5,7 @@ import { AQICategoryId, ErrorCode } from '../../types/index.ts';
 describe('aqiService', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('fetches live AQI data from the server proxy for a valid city', async () => {
@@ -67,5 +68,17 @@ describe('aqiService', () => {
     expect(manual.category).toBe(AQICategoryId.VERY_UNHEALTHY);
     expect(() => createManualAQIData('Lahore', 700)).toThrow();
     expect(() => createManualAQIData('Lahore', 180, -10)).toThrow();
+  });
+
+  it('throws clean AQI_FETCH_ERROR without raw SyntaxError when server returns invalid JSON on 200', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(new Response('<html>502 Proxy</html>', { status: 200 })),
+    );
+
+    await expect(fetchAQIDataByCity('Lahore')).rejects.toEqual({
+      code: ErrorCode.AQI_FETCH_ERROR,
+      message: expect.any(String),
+    });
   });
 });

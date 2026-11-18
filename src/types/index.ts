@@ -112,7 +112,6 @@ export interface AQICategoryInfo {
   label: string;
   minAqi: number;
   maxAqi: number;
-  badgeClass: string;
   healthGuidance: string;
 }
 

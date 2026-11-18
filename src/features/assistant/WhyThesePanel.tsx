@@ -19,23 +19,33 @@ function findLabel(
   return options.find((opt) => opt.value === value)?.label ?? value;
 }
 
+interface ContextChip {
+  id: string;
+  label: string;
+}
+
 /**
  * Surfaces the city, AQI, sensitivities, commute, and home inputs driving AI recommendations.
  */
 export function WhyThesePanel({ profile, aqiData }: WhyThesePanelProps): ReactElement {
-  const chips: string[] = [aqiData ? aqiData.city : profile.city];
+  const chips: ContextChip[] = [{ id: 'city', label: aqiData ? aqiData.city : profile.city }];
 
   if (aqiData) {
     const category = getAQICategoryInfo(aqiData.category);
-    chips.push(`${UI_LABELS.AQI_LABEL} ${aqiData.aqi} (${category.label})`);
+    chips.push({ id: 'aqi', label: `${UI_LABELS.AQI_LABEL} ${aqiData.aqi} (${category.label})` });
   }
 
-  if (profile.hasChildren) chips.push(UI_LABELS.HAS_CHILDREN_LABEL);
-  if (profile.hasElderly) chips.push(UI_LABELS.HAS_ELDERLY_LABEL);
-  if (profile.hasRespiratoryCondition) chips.push(UI_LABELS.HAS_RESPIRATORY_LABEL);
+  if (profile.hasChildren) chips.push({ id: 'children', label: UI_LABELS.HAS_CHILDREN_LABEL });
+  if (profile.hasElderly) chips.push({ id: 'elderly', label: UI_LABELS.HAS_ELDERLY_LABEL });
+  if (profile.hasRespiratoryCondition) {
+    chips.push({ id: 'respiratory', label: UI_LABELS.HAS_RESPIRATORY_LABEL });
+  }
 
-  chips.push(findLabel(PROFILE_OPTIONS.COMMUTE_MODES, profile.commuteMode));
-  chips.push(findLabel(PROFILE_OPTIONS.HOME_TYPES, profile.homeType));
+  chips.push({
+    id: 'commute',
+    label: findLabel(PROFILE_OPTIONS.COMMUTE_MODES, profile.commuteMode),
+  });
+  chips.push({ id: 'home', label: findLabel(PROFILE_OPTIONS.HOME_TYPES, profile.homeType) });
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-slate-800 dark:bg-slate-950/60">
@@ -48,10 +58,10 @@ export function WhyThesePanel({ profile, aqiData }: WhyThesePanelProps): ReactEl
       <ul className="flex flex-wrap gap-2">
         {chips.map((chip) => (
           <li
-            key={chip}
+            key={chip.id}
             className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
-            {chip}
+            {chip.label}
           </li>
         ))}
       </ul>

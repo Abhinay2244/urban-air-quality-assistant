@@ -31,6 +31,11 @@ export const API_ENDPOINTS = {
 } as const;
 
 /**
+ * Default fallback country label shared by client display and server AQI providers.
+ */
+export const DEFAULT_COUNTRY = 'Unknown';
+
+/**
  * Server network binding, body limits, and upstream request timeout configuration.
  */
 export const SERVER_CONFIG = {
@@ -47,6 +52,7 @@ export const RATE_LIMIT_CONFIG = {
   WINDOW_MS: 60_000,
   MAX_REQUESTS: 30,
   MS_PER_SECOND: 1000,
+  MAX_TRACKED_IPS: 1000,
 } as const;
 
 /**
@@ -79,6 +85,7 @@ export const HTTP_STATUS = {
   BAD_REQUEST: 400,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  PAYLOAD_TOO_LARGE: 413,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
   BAD_GATEWAY: 502,
@@ -90,6 +97,8 @@ export const HTTP_STATUS = {
  */
 export const ERROR_CODES = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
+  NOT_FOUND: 'NOT_FOUND',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   CITY_NOT_FOUND: 'CITY_NOT_FOUND',
   AQI_FETCH_ERROR: 'AQI_FETCH_ERROR',
   AI_SERVICE_ERROR: 'AI_SERVICE_ERROR',
@@ -117,5 +126,8 @@ export const ERROR_MESSAGES = {
   MISSING_API_KEY:
     'Server Gemini API key is not configured. Check Settings > Secrets in AI Studio.',
   INVALID_REQUEST_BODY: 'Invalid profile or air quality payload provided.',
+  INVALID_JSON: 'Malformed JSON request body.',
+  PAYLOAD_TOO_LARGE: 'Request body exceeds the allowed size limit.',
+  API_ROUTE_NOT_FOUND: 'API route not found.',
   NETWORK_ERROR: 'Network connection failed while contacting the service.',
 } as const;

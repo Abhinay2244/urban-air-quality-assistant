@@ -1,11 +1,14 @@
 {
-  "name": "react-example",
+  "name": "urban-air-quality-assistant",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "scripts": {
     "dev": "tsx server.ts",
-    "start": "node server.ts",
+    "start": "NODE_ENV=production node server.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist coverage",

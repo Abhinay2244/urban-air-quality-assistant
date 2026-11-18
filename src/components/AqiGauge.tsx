@@ -3,6 +3,7 @@ import { MAX_STANDARD_AQI, MIN_STANDARD_AQI } from '../constants/aqi.ts';
 import { UI_LABELS } from '../constants/config.ts';
 import { AQI_VISUAL_TOKENS, GAUGE_METRICS } from '../constants/uiTheme.ts';
 import type { AQICategoryInfo } from '../types/index.ts';
+import { clampRounded } from '../utils/math.ts';
 
 /**
  * Props for AqiGauge component.
@@ -19,7 +20,7 @@ export function AqiGauge({ aqi, category }: AqiGaugeProps): ReactElement {
   const { RADIUS, STROKE_WIDTH, VIEWBOX_SIZE } = GAUGE_METRICS;
   const center = VIEWBOX_SIZE / 2;
   const circumference = 2 * Math.PI * RADIUS;
-  const clamped = Math.min(MAX_STANDARD_AQI, Math.max(MIN_STANDARD_AQI, Math.round(aqi)));
+  const clamped = clampRounded(aqi, MIN_STANDARD_AQI, MAX_STANDARD_AQI);
   const progress = clamped / MAX_STANDARD_AQI;
   const dashOffset = circumference * (1 - progress);
   const strokeColor = AQI_VISUAL_TOKENS[category.id].strokeHex;
