@@ -7,12 +7,8 @@ import { WHO_PM25_GUIDELINE_UG_M3 } from '../../constants/aqi.ts';
 import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
 import { AQI_VISUAL_TOKENS, UI_COPY } from '../../constants/uiTheme.ts';
 import type { AQIData, AssistantResponse } from '../../types/index.ts';
-import {
-  calculateTotalPM25Reduction,
-  formatPM25Value,
-  formatTimestamp,
-  getAQICategoryInfo,
-} from '../../utils/formatting.ts';
+import { calculateTotalPM25Reduction, getAQICategoryInfo } from '../../utils/aqiCalculations.ts';
+import { formatPM25Value, formatTimestamp } from '../../utils/formatting.ts';
 import { ManualAqiForm } from './ManualAqiForm.tsx';
 
 /**
@@ -84,7 +80,7 @@ export function ImpactSummary({
                     {UI_LABELS.PM25_LABEL}: {formatPM25Value(aqiData.pm25)}
                   </span>
                   <span className="text-sm text-slate-600 tabular-nums dark:text-slate-300">
-                    {UI_COPY.WHO_GUIDELINE_LABEL} {formatPM25Value(WHO_PM25_GUIDELINE_UG_M3)}
+                    {UI_LABELS.WHO_GUIDELINE_LABEL} {formatPM25Value(WHO_PM25_GUIDELINE_UG_M3)}
                   </span>
                   <span className="text-sm text-slate-600 dark:text-slate-400">
                     {formatTimestamp(aqiData.updatedAt)}

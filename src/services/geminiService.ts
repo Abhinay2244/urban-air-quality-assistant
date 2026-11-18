@@ -6,11 +6,21 @@ import {
   type UserProfile,
 } from '../types/index.ts';
 import { parseAndValidateAssistantResponse } from '../utils/assistantParser.ts';
-import { createAppError, isAppError, toAppError } from '../utils/errors.ts';
-import { validateAQIData, validateUserProfile } from '../utils/validation.ts';
+import { createAppError, toAppError } from '../utils/errors.ts';
+import {
+  isRecord,
+  unwrapValidation,
+  validateAQIData,
+  validateUserProfile,
+} from '../utils/validation.ts';
+import { fetchJsonOrThrow } from './httpClient.ts';
 
 interface ServerAssistantPayload {
-  rawText?: string;
+  rawText: string;
+}
+
+function isServerAssistantPayload(raw: unknown): raw is ServerAssistantPayload {
+  return isRecord(raw) && typeof raw.rawText === 'string';
 }
 
 /**
@@ -21,38 +31,26 @@ export async function getAirQualityRecommendations(
   profile: UserProfile,
   aqiData: AQIData,
 ): Promise<AssistantResponse> {
-  const profileValidation = validateUserProfile(profile);
-  if (!profileValidation.isValid || profileValidation.error) {
-    throw (
-      profileValidation.error ??
-      createAppError(ErrorCode.VALIDATION_ERROR, ERROR_MESSAGES.INVALID_CITY)
-    );
-  }
+  const safeProfile = unwrapValidation(validateUserProfile(profile), ERROR_MESSAGES.INVALID_CITY);
 
   if (!validateAQIData(aqiData)) {
     throw createAppError(ErrorCode.VALIDATION_ERROR, ERROR_MESSAGES.INVALID_REQUEST_BODY);
   }
 
   try {
-    const response = await fetch(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profile: profileValidation.value,
-        aqiData,
-      }),
-    });
+    const payload = await fetchJsonOrThrow(
+      API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: safeProfile, aqiData }),
+      },
+      ErrorCode.AI_SERVICE_ERROR,
+      ERROR_MESSAGES.AI_REQUEST_FAILED,
+      isServerAssistantPayload,
+    );
 
-    if (!response.ok) {
-      const errorPayload: unknown = await response.json().catch(() => null);
-      if (isAppError(errorPayload)) {
-        throw errorPayload;
-      }
-      throw createAppError(ErrorCode.AI_SERVICE_ERROR, ERROR_MESSAGES.AI_REQUEST_FAILED);
-    }
-
-    const payload = (await response.json()) as ServerAssistantPayload;
-    return parseAndValidateAssistantResponse(payload.rawText ?? '');
+    return parseAndValidateAssistantResponse(payload.rawText);
   } catch (error: unknown) {
     throw toAppError(error, ErrorCode.AI_SERVICE_ERROR, ERROR_MESSAGES.AI_REQUEST_FAILED);
   }

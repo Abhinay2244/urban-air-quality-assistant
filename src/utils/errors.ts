@@ -1,4 +1,11 @@
 import { type AppError, ErrorCode } from '../types/index.ts';
+import { isRecord } from './typeGuards.ts';
+
+const VALID_ERROR_CODES: readonly string[] = Object.values(ErrorCode);
+
+function isErrorCode(value: unknown): value is ErrorCode {
+  return typeof value === 'string' && VALID_ERROR_CODES.includes(value);
+}
 
 /**
  * Creates a typed, user-friendly application error object.
@@ -11,16 +18,11 @@ export function createAppError(code: ErrorCode, message: string, details?: strin
  * Type guard checking whether an unknown value conforms to AppError.
  */
 export function isAppError(value: unknown): value is AppError {
-  if (typeof value !== 'object' || value === null) {
+  if (!isRecord(value)) {
     return false;
   }
 
-  const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.code === 'string' &&
-    Object.values(ErrorCode).includes(candidate.code as ErrorCode) &&
-    typeof candidate.message === 'string'
-  );
+  return isErrorCode(value.code) && typeof value.message === 'string';
 }
 
 /**

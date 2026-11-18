@@ -53,10 +53,19 @@ describe('aqiService', () => {
     });
   });
 
-  it('creates validated manual AQI data and rejects out-of-range inputs', () => {
+  it('emits NETWORK_ERROR when fetch rejects with a TypeError', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')));
+
+    await expect(fetchAQIDataByCity('New Delhi')).rejects.toMatchObject({
+      code: ErrorCode.NETWORK_ERROR,
+    });
+  });
+
+  it('creates validated manual AQI data and rejects out-of-range AQI or PM2.5 inputs', () => {
     const manual = createManualAQIData('Lahore', 220);
     expect(manual.source).toBe('manual');
     expect(manual.category).toBe(AQICategoryId.VERY_UNHEALTHY);
     expect(() => createManualAQIData('Lahore', 700)).toThrow();
+    expect(() => createManualAQIData('Lahore', 180, -10)).toThrow();
   });
 });

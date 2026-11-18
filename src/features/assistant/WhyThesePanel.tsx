@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { PROFILE_OPTIONS, UI_LABELS } from '../../constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import type { AQIData, UserProfile } from '../../types/index.ts';
-import { getAQICategoryInfo } from '../../utils/formatting.ts';
+import { getAQICategoryInfo } from '../../utils/aqiCalculations.ts';
 
 /**
  * Props for WhyThesePanel component.

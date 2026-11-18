@@ -5,21 +5,38 @@ import {
   type Recommendation,
   RecommendationCategory,
 } from '../types/index.ts';
+import { clampRounded } from './math.ts';
 import { sanitizeText } from './sanitizing.ts';
+import { isRecord } from './validation.ts';
+
+const VALID_CATEGORIES: readonly string[] = Object.values(RecommendationCategory);
+
+/**
+ * Extracts and sanitizes a string field, returning an empty string for non-strings.
+ */
+export function readStringField(value: unknown, maxLen: number): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return sanitizeText(value, maxLen);
+}
+
+function parseCategory(value: unknown): RecommendationCategory {
+  if (typeof value === 'string' && VALID_CATEGORIES.includes(value)) {
+    return value as RecommendationCategory;
+  }
+  return RecommendationCategory.DAILY_ROUTINE;
+}
 
 function normalizeRecommendation(raw: unknown): Recommendation | null {
-  if (typeof raw !== 'object' || raw === null) {
+  if (!isRecord(raw)) {
     return null;
   }
 
-  const item = raw as Record<string, unknown>;
-  const title = sanitizeText(String(item.title ?? ''), INPUT_LIMITS.MAX_RECOMMENDATION_TEXT_LENGTH);
-  const action = sanitizeText(
-    String(item.action ?? ''),
-    INPUT_LIMITS.MAX_RECOMMENDATION_TEXT_LENGTH,
-  );
-  const impactExplanation = sanitizeText(
-    String(item.impactExplanation ?? ''),
+  const title = readStringField(raw.title, INPUT_LIMITS.MAX_RECOMMENDATION_TEXT_LENGTH);
+  const action = readStringField(raw.action, INPUT_LIMITS.MAX_RECOMMENDATION_TEXT_LENGTH);
+  const impactExplanation = readStringField(
+    raw.impactExplanation,
     INPUT_LIMITS.MAX_RECOMMENDATION_TEXT_LENGTH,
   );
 
@@ -27,21 +44,21 @@ function normalizeRecommendation(raw: unknown): Recommendation | null {
     return null;
   }
 
-  const category = Object.values(RecommendationCategory).includes(
-    item.category as RecommendationCategory,
-  )
-    ? (item.category as RecommendationCategory)
-    : RecommendationCategory.DAILY_ROUTINE;
+  const rawReduction =
+    typeof raw.estimatedPM25Reduction === 'number' ? raw.estimatedPM25Reduction : NaN;
+  const estimatedPM25Reduction = clampRounded(
+    rawReduction,
+    INPUT_LIMITS.MIN_PM25_REDUCTION,
+    INPUT_LIMITS.MAX_PM25_REDUCTION,
+  );
 
-  const rawReduction = Number(item.estimatedPM25Reduction);
-  const clampedReduction = Number.isFinite(rawReduction)
-    ? Math.min(
-        INPUT_LIMITS.MAX_PM25_REDUCTION,
-        Math.max(INPUT_LIMITS.MIN_PM25_REDUCTION, Math.round(rawReduction)),
-      )
-    : INPUT_LIMITS.MIN_PM25_REDUCTION;
-
-  return { title, category, action, impactExplanation, estimatedPM25Reduction: clampedReduction };
+  return {
+    title,
+    category: parseCategory(raw.category),
+    action,
+    impactExplanation,
+    estimatedPM25Reduction,
+  };
 }
 
 /**
@@ -51,17 +68,16 @@ function normalizeRecommendation(raw: unknown): Recommendation | null {
 export function parseAndValidateAssistantResponse(rawText: string): AssistantResponse {
   try {
     const parsed: unknown = JSON.parse(rawText.trim());
-    if (typeof parsed !== 'object' || parsed === null) {
+    if (!isRecord(parsed)) {
       return SAFE_FALLBACK_ASSISTANT_RESPONSE;
     }
 
-    const candidate = parsed as Record<string, unknown>;
-    const summary = sanitizeText(String(candidate.summary ?? ''), INPUT_LIMITS.MAX_SUMMARY_LENGTH);
-    const priorityGuidance = sanitizeText(
-      String(candidate.priorityGuidance ?? ''),
+    const summary = readStringField(parsed.summary, INPUT_LIMITS.MAX_SUMMARY_LENGTH);
+    const priorityGuidance = readStringField(
+      parsed.priorityGuidance,
       INPUT_LIMITS.MAX_SUMMARY_LENGTH,
     );
-    const rawList = Array.isArray(candidate.recommendations) ? candidate.recommendations : [];
+    const rawList = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
     const recommendations = rawList
       .map(normalizeRecommendation)
       .filter((item): item is Recommendation => item !== null)
@@ -79,7 +95,7 @@ export function parseAndValidateAssistantResponse(rawText: string): AssistantRes
       summary,
       priorityGuidance,
       recommendations,
-      isFallback: Boolean(candidate.isFallback),
+      isFallback: Boolean(parsed.isFallback),
     };
   } catch {
     return SAFE_FALLBACK_ASSISTANT_RESPONSE;

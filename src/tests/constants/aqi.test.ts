@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AQI_CATEGORIES, MAX_STANDARD_AQI, MIN_STANDARD_AQI } from '../../constants/aqi.ts';
 import { AQICategoryId } from '../../types/index.ts';
-import { getAQICategoryByValue } from '../../utils/formatting.ts';
+import { getAQICategoryByValue } from '../../utils/aqiCalculations.ts';
 
 describe('AQI constants and category resolution', () => {
   it('defines all six standard EPA categories in ascending order', () => {

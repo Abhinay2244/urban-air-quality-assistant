@@ -92,7 +92,7 @@ export const UI_LABELS = {
   PRIORITY_LABEL: 'Top Priority Today',
   IMPACT_EXPLANATION_LABEL: 'Direct impact',
   PM25_REDUCTION_LABEL: 'Estimated PM2.5 reduction',
-  MANUAL_AQI_TITLE: 'Manual AQI Entry',
+  WHO_GUIDELINE_LABEL: 'WHO 24h guideline:',
   MANUAL_AQI_INPUT_LABEL: 'Current US AQI (0–500)',
   MANUAL_PM25_INPUT_LABEL: 'Optional PM2.5 (ug/m3)',
   MANUAL_AQI_SUBMIT_LABEL: 'Generate Plan with Manual AQI',

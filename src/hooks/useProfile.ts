@@ -17,11 +17,10 @@ export interface UseProfileResult {
   fieldErrors: ProfileFieldErrors;
   updateField: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
   validateProfile: () => UserProfile | null;
-  resetProfile: () => void;
 }
 
 /**
- * Manages household profile state, live field validation, and reset.
+ * Manages household profile state and live field validation.
  */
 export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): UseProfileResult {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
@@ -61,18 +60,11 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
     return result.value;
   }, [profile]);
 
-  const resetProfile = useCallback((): void => {
-    setProfile(initialProfile);
-    setValidationError(null);
-    setFieldErrors({});
-  }, [initialProfile]);
-
   return {
     profile,
     validationError,
     fieldErrors,
     updateField,
     validateProfile,
-    resetProfile,
   };
 }

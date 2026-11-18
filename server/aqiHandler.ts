@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
-import { ERROR_MESSAGES, HTTP_STATUS, INPUT_LIMITS } from '../src/constants/limits.ts';
+import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS, INPUT_LIMITS } from '../src/constants/limits.ts';
 import { sanitizeText } from '../src/utils/sanitizing.ts';
 import { fetchFromOpenMeteo, fetchFromWaqi } from './aqiProviders.ts';
+import { isTimeoutError, logServerError, sendErrorResponse } from './errorResponse.ts';
 
 const PLACEHOLDER_KEY = 'MY_AQI_API_KEY';
 
@@ -12,10 +13,12 @@ export async function handleLiveAqiLookup(req: Request, res: Response): Promise<
   const rawCity = typeof req.query.city === 'string' ? req.query.city : '';
   const city = sanitizeText(rawCity, INPUT_LIMITS.MAX_CITY_LENGTH);
   if (city.length < INPUT_LIMITS.MIN_CITY_LENGTH) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      code: 'VALIDATION_ERROR',
-      message: ERROR_MESSAGES.INVALID_CITY,
-    });
+    sendErrorResponse(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_CODES.VALIDATION_ERROR,
+      ERROR_MESSAGES.INVALID_CITY,
+    );
     return;
   }
 
@@ -31,27 +34,32 @@ export async function handleLiveAqiLookup(req: Request, res: Response): Promise<
 
     const fallbackResult = await fetchFromOpenMeteo(city);
     if (fallbackResult === 'not_found') {
-      res.status(HTTP_STATUS.NOT_FOUND).json({
-        code: 'CITY_NOT_FOUND',
-        message: ERROR_MESSAGES.CITY_NOT_FOUND,
-      });
+      sendErrorResponse(
+        res,
+        HTTP_STATUS.NOT_FOUND,
+        ERROR_CODES.CITY_NOT_FOUND,
+        ERROR_MESSAGES.CITY_NOT_FOUND,
+      );
       return;
     }
 
     if (!fallbackResult) {
-      res.status(HTTP_STATUS.BAD_GATEWAY).json({
-        code: 'AQI_FETCH_ERROR',
-        message: ERROR_MESSAGES.AQI_FETCH_FAILED,
-      });
+      sendErrorResponse(
+        res,
+        HTTP_STATUS.BAD_GATEWAY,
+        ERROR_CODES.AQI_FETCH_ERROR,
+        ERROR_MESSAGES.AQI_FETCH_FAILED,
+      );
       return;
     }
 
     res.status(HTTP_STATUS.OK).json(fallbackResult);
   } catch (error: unknown) {
-    res.status(HTTP_STATUS.BAD_GATEWAY).json({
-      code: 'AQI_FETCH_ERROR',
-      message: ERROR_MESSAGES.AQI_FETCH_FAILED,
-      details: error instanceof Error ? error.message : undefined,
-    });
+    logServerError('AQI Handler', error);
+    const status = isTimeoutError(error) ? HTTP_STATUS.GATEWAY_TIMEOUT : HTTP_STATUS.BAD_GATEWAY;
+    const message = isTimeoutError(error)
+      ? ERROR_MESSAGES.UPSTREAM_TIMEOUT
+      : ERROR_MESSAGES.AQI_FETCH_FAILED;
+    sendErrorResponse(res, status, ERROR_CODES.AQI_FETCH_ERROR, message);
   }
 }

@@ -70,7 +70,7 @@ describe('geminiService', () => {
     expect(result).toEqual(SAFE_FALLBACK_ASSISTANT_RESPONSE);
   });
 
-  it('propagates typed API errors when the server returns an error status', async () => {
+  it('propagates typed API errors and emits NETWORK_ERROR on fetch TypeError', async () => {
     vi.stubGlobal(
       'fetch',
       vi
@@ -80,7 +80,8 @@ describe('geminiService', () => {
             JSON.stringify({ code: ErrorCode.AI_SERVICE_ERROR, message: 'Missing API key' }),
             { status: 500 },
           ),
-        ),
+        )
+        .mockRejectedValueOnce(new TypeError('Offline')),
     );
 
     await expect(
@@ -88,6 +89,12 @@ describe('geminiService', () => {
     ).rejects.toMatchObject({
       code: ErrorCode.AI_SERVICE_ERROR,
       message: 'Missing API key',
+    });
+
+    await expect(
+      getAirQualityRecommendations(DEFAULT_USER_PROFILE, SAMPLE_AQI_DATA),
+    ).rejects.toMatchObject({
+      code: ErrorCode.NETWORK_ERROR,
     });
   });
 });

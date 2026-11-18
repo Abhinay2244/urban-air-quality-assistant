@@ -88,4 +88,30 @@ describe('useAssistant hook', () => {
     expect(result.current.aqiData?.source).toBe('manual');
     expect(result.current.assistantResponse).not.toBeNull();
   });
+
+  it('keeps manual form visible with AI_SERVICE_ERROR and retries manual mode', async () => {
+    const fetchSpy = vi.spyOn(aqiService, 'fetchAQIDataByCity');
+    const aiSpy = vi
+      .spyOn(geminiService, 'getAirQualityRecommendations')
+      .mockRejectedValueOnce(new Error('Upstream AI error'))
+      .mockResolvedValueOnce(MOCK_RESPONSE);
+
+    const { result } = renderHook(() => useAssistant());
+    await act(async () => {
+      await result.current.generatePlanWithManualAqi(DEFAULT_USER_PROFILE, 195);
+    });
+
+    expect(result.current.isAqiUnavailable).toBe(true);
+    expect(result.current.error?.code).toBe(ErrorCode.AI_SERVICE_ERROR);
+
+    await act(async () => {
+      await result.current.retryLastRequest();
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(aiSpy).toHaveBeenCalledTimes(2);
+    expect(result.current.isAqiUnavailable).toBe(false);
+    expect(result.current.aqiData?.source).toBe('manual');
+    expect(result.current.error).toBeNull();
+  });
 });

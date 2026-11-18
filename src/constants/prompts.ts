@@ -1,11 +1,4 @@
-import type {
-  AQIData,
-  AssistantResponse,
-  RecommendationCategory,
-  UserProfile,
-} from '../types/index.ts';
-import { sanitizeText } from '../utils/sanitizing.ts';
-import { INPUT_LIMITS } from './limits.ts';
+import type { AssistantResponse, RecommendationCategory } from '../types/index.ts';
 
 /**
  * System instruction guiding Gemini to provide evidence-based winter smog advice.
@@ -37,27 +30,6 @@ export const ASSISTANT_SCHEMA_DESCRIPTIONS = {
   ESTIMATED_PM25_REDUCTION:
     'Estimated percentage reduction in personal PM2.5 exposure or emissions (0-100).',
 } as const;
-
-/**
- * Builds the structured user prompt sent to Gemini after sanitizing all user-derived text.
- */
-export function buildAssistantPrompt(profile: UserProfile, aqiData: AQIData): string {
-  const safeCity = sanitizeText(aqiData.city, INPUT_LIMITS.MAX_CITY_LENGTH);
-  const safeCountry = sanitizeText(aqiData.country, INPUT_LIMITS.MAX_CITY_LENGTH);
-
-  return [
-    'Generate a tailored winter smog action plan using this household profile and air quality reading:',
-    `City: ${safeCity}, ${safeCountry}`,
-    `Current US AQI: ${Math.round(aqiData.aqi)} (${aqiData.category})`,
-    `Pollutants (ug/m3): PM2.5=${aqiData.pm25}, PM10=${aqiData.pm10}, NO2=${aqiData.no2}, O3=${aqiData.o3}`,
-    `Family Type: ${profile.familyType}`,
-    `Has Children: ${profile.hasChildren}`,
-    `Has Elderly: ${profile.hasElderly}`,
-    `Has Respiratory Condition: ${profile.hasRespiratoryCondition}`,
-    `Primary Commute Mode: ${profile.commuteMode}`,
-    `Home Type: ${profile.homeType}`,
-  ].join('\n');
-}
 
 /**
  * Safe validated fallback returned if model JSON output cannot be parsed.

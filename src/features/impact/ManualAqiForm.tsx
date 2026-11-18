@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactElement, useState } from 'react';
-import { APP_TEXT, ERROR_MESSAGES, INPUT_LIMITS, UI_LABELS } from '../../constants/config.ts';
+import { APP_TEXT, INPUT_LIMITS, UI_LABELS } from '../../constants/config.ts';
+import { validateManualAqi, validateOptionalPm25 } from '../../utils/validation.ts';
 
 /**
  * Props for ManualAqiForm component.
@@ -12,6 +13,7 @@ export interface ManualAqiFormProps {
 const MANUAL_AQI_ID = 'manual-aqi-input';
 const MANUAL_AQI_ERROR_ID = 'manual-aqi-error';
 const MANUAL_PM25_ID = 'manual-pm25-input';
+const MANUAL_PM25_ERROR_ID = 'manual-pm25-error';
 const DEFAULT_MANUAL_AQI = '180';
 
 /**
@@ -21,34 +23,30 @@ export function ManualAqiForm({ isLoading, onSubmitManualAqi }: ManualAqiFormPro
   const [aqiInput, setAqiInput] = useState<string>(DEFAULT_MANUAL_AQI);
   const [pm25Input, setPm25Input] = useState<string>('');
   const [inlineError, setInlineError] = useState<string | null>(null);
-
-  const validateAndParseAqi = (raw: string): number | null => {
-    const parsed = Number(raw);
-    if (
-      raw.trim() === '' ||
-      !Number.isFinite(parsed) ||
-      parsed < INPUT_LIMITS.MIN_AQI_VALUE ||
-      parsed > INPUT_LIMITS.MAX_AQI_VALUE
-    ) {
-      return null;
-    }
-    return parsed;
-  };
+  const [pm25Error, setPm25Error] = useState<string | null>(null);
 
   const handleAqiChange = (value: string): void => {
     setAqiInput(value);
-    setInlineError(validateAndParseAqi(value) === null ? ERROR_MESSAGES.INVALID_MANUAL_AQI : null);
+    const result = validateManualAqi(value);
+    setInlineError(result.isValid ? null : (result.error?.message ?? null));
+  };
+
+  const handlePm25Change = (value: string): void => {
+    setPm25Input(value);
+    const result = validateOptionalPm25(value);
+    setPm25Error(result.isValid ? null : (result.error?.message ?? null));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    const parsedAqi = validateAndParseAqi(aqiInput);
-    if (parsedAqi === null) {
-      setInlineError(ERROR_MESSAGES.INVALID_MANUAL_AQI);
+    const aqiResult = validateManualAqi(aqiInput);
+    const pm25Result = validateOptionalPm25(pm25Input);
+    setInlineError(aqiResult.isValid ? null : (aqiResult.error?.message ?? null));
+    setPm25Error(pm25Result.isValid ? null : (pm25Result.error?.message ?? null));
+    if (!aqiResult.isValid || !pm25Result.isValid) {
       return;
     }
-    const parsedPm25 = pm25Input.trim() === '' ? undefined : Number(pm25Input);
-    onSubmitManualAqi(parsedAqi, parsedPm25);
+    onSubmitManualAqi(aqiResult.value, pm25Result.value);
   };
 
   return (
@@ -103,15 +101,26 @@ export function ManualAqiForm({ isLoading, onSubmitManualAqi }: ManualAqiFormPro
             min={0}
             max={INPUT_LIMITS.MAX_PM25_VALUE}
             value={pm25Input}
-            onChange={(event) => setPm25Input(event.target.value)}
+            aria-invalid={Boolean(pm25Error)}
+            aria-describedby={pm25Error ? MANUAL_PM25_ERROR_ID : undefined}
+            onChange={(event) => handlePm25Change(event.target.value)}
             className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-base text-slate-900 tabular-nums dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
           />
+          {pm25Error && (
+            <p
+              id={MANUAL_PM25_ERROR_ID}
+              role="alert"
+              className="text-sm font-medium text-red-700 dark:text-red-300"
+            >
+              {pm25Error}
+            </p>
+          )}
         </div>
       </div>
 
       <button
         type="submit"
-        disabled={isLoading || Boolean(inlineError)}
+        disabled={isLoading || Boolean(inlineError) || Boolean(pm25Error)}
         className="inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
       >
         {UI_LABELS.MANUAL_AQI_SUBMIT_LABEL}

@@ -24,7 +24,6 @@ export const UI_COPY = {
   DISCLAIMER: 'General guidance, not medical advice.',
   COOLDOWN_BUTTON_PREFIX: 'Wait',
   COOLDOWN_BUTTON_SUFFIX: 's to refresh',
-  WHO_GUIDELINE_LABEL: 'WHO 24h limit:',
 } as const;
 
 /**

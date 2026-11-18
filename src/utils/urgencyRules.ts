@@ -1,5 +1,10 @@
 import { AQI_THRESHOLDS } from '../constants/aqi.ts';
 import {
+  CONTEXT_RULE_TEMPLATES,
+  SEVERE_ALERT_TEMPLATE,
+  SEVERE_PRIORITY_TEMPLATE,
+} from '../constants/urgencyTemplates.ts';
+import {
   type AQIData,
   type AssistantResponse,
   CommuteMode,
@@ -22,57 +27,29 @@ function hasVulnerableMembers(profile: UserProfile): boolean {
 
 function buildSevereAlertRecommendation(profile: UserProfile, aqi: number): Recommendation {
   const groups: string[] = [];
-  if (profile.hasRespiratoryCondition) groups.push('members with respiratory conditions');
-  if (profile.hasChildren) groups.push('children');
-  if (profile.hasElderly) groups.push('older adults');
-  const audience = groups.length > 0 ? groups.join(', ') : 'all household members';
+  if (profile.hasRespiratoryCondition) groups.push(SEVERE_ALERT_TEMPLATE.AUDIENCE_RESPIRATORY);
+  if (profile.hasChildren) groups.push(SEVERE_ALERT_TEMPLATE.AUDIENCE_CHILDREN);
+  if (profile.hasElderly) groups.push(SEVERE_ALERT_TEMPLATE.AUDIENCE_ELDERLY);
+  const audience = groups.length > 0 ? groups.join(', ') : SEVERE_ALERT_TEMPLATE.DEFAULT_AUDIENCE;
 
   return {
-    title: 'Stay Indoors and Wear a Fitted N95 Mask for Essential Trips',
-    category: RecommendationCategory.HEALTH_ALERT,
+    title: SEVERE_ALERT_TEMPLATE.TITLE,
+    category: SEVERE_ALERT_TEMPLATE.CATEGORY,
     action: `At AQI ${aqi}, keep ${audience} indoors with windows closed, run filtration, and wear a fitted N95/KF94 mask outside.`,
-    impactExplanation:
-      'Prevents acute PM2.5 inhalation spikes that trigger airway inflammation and flare-ups.',
-    estimatedPM25Reduction: 70,
-    urgency: UrgencyLevel.CRITICAL,
+    impactExplanation: SEVERE_ALERT_TEMPLATE.IMPACT_EXPLANATION,
+    estimatedPM25Reduction: SEVERE_ALERT_TEMPLATE.ESTIMATED_PM25_REDUCTION,
+    urgency: SEVERE_ALERT_TEMPLATE.URGENCY,
   };
 }
 
 function buildContextRecommendation(profile: UserProfile): Recommendation {
   if (profile.commuteMode === CommuteMode.WALK_OR_BIKE) {
-    return {
-      title: 'Pause Active Outdoor Commuting During Smog Peaks',
-      category: RecommendationCategory.DAILY_ROUTINE,
-      action:
-        'Switch walking or cycling trips to enclosed transit or carpools during inversion hours.',
-      impactExplanation:
-        'Avoiding heavy outdoor breathing near traffic cuts inhaled PM2.5 dramatically.',
-      estimatedPM25Reduction: 45,
-      urgency: UrgencyLevel.HIGH,
-    };
+    return { ...CONTEXT_RULE_TEMPLATES.WALK_OR_BIKE };
   }
   if (profile.homeType === HomeType.APARTMENT || profile.homeType === HomeType.SHARED_HOUSING) {
-    return {
-      title: 'Seal Shared Hallway and Window Drafts',
-      category: RecommendationCategory.INDOOR_AIR,
-      action:
-        'Place door sweeps under corridor doors and minimize exhaust-fan runtime during smog peaks.',
-      impactExplanation:
-        'Reduces stack-effect infiltration of outdoor winter smog into compact living spaces.',
-      estimatedPM25Reduction: 35,
-      urgency: UrgencyLevel.HIGH,
-    };
+    return { ...CONTEXT_RULE_TEMPLATES.COMPACT_HOUSING };
   }
-  return {
-    title: 'Replace Private Car Cold-Starts with Bundled Eco-Trips',
-    category: RecommendationCategory.SUSTAINABLE_ALTERNATIVE,
-    action:
-      'Bundle errands into one mid-day trip, set cabin HVAC to recirculate, and avoid idling.',
-    impactExplanation:
-      'Eliminates high-emission cold-start exhaust and lowers in-cabin particle infiltration.',
-    estimatedPM25Reduction: 30,
-    urgency: UrgencyLevel.HIGH,
-  };
+  return { ...CONTEXT_RULE_TEMPLATES.DEFAULT_ECO_TRIP };
 }
 
 function scoreUrgency(rec: Recommendation, profile: UserProfile, aqi: number): UrgencyLevel {
@@ -116,14 +93,12 @@ export function applyUrgencyRules(
   const hasMaskAlert = enriched.some(
     (rec) =>
       rec.category === RecommendationCategory.HEALTH_ALERT &&
-      rec.action.toLowerCase().includes('mask'),
+      rec.action.toLowerCase().includes(SEVERE_ALERT_TEMPLATE.MASK_KEYWORD),
   );
 
-  if (severeOrSensitiveUnhealthy && !hasMaskAlert) {
-    enriched.unshift(buildSevereAlertRecommendation(profile, aqiData.aqi));
-  } else if (
-    vulnerable &&
-    enriched.every((rec) => rec.category !== RecommendationCategory.HEALTH_ALERT)
+  if (
+    (severeOrSensitiveUnhealthy && !hasMaskAlert) ||
+    (vulnerable && enriched.every((rec) => rec.category !== RecommendationCategory.HEALTH_ALERT))
   ) {
     enriched.unshift(buildSevereAlertRecommendation(profile, aqiData.aqi));
   }
@@ -140,7 +115,7 @@ export function applyUrgencyRules(
   );
 
   const priorityGuidance = severeOrSensitiveUnhealthy
-    ? `Stay indoors, seal living spaces, and use a fitted N95 mask for essential trips (AQI ${aqiData.aqi}).`
+    ? `${SEVERE_PRIORITY_TEMPLATE.PREFIX}${aqiData.aqi}${SEVERE_PRIORITY_TEMPLATE.SUFFIX}`
     : response.priorityGuidance;
 
   return { ...response, priorityGuidance, recommendations: enriched };
