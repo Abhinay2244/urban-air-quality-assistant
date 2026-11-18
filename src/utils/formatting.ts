@@ -5,16 +5,23 @@ import {
   type AQICategoryInfo,
   type Recommendation,
   RecommendationCategory,
+  UrgencyLevel,
 } from '../types/index.ts';
 
 const PERCENT_DIVISOR = 100;
 const DECIMAL_PLACES = 1;
 
 const RECOMMENDATION_CATEGORY_LABELS: Record<RecommendationCategory, string> = {
-  [RecommendationCategory.DAILY_ROUTINE]: 'Daily Routine',
-  [RecommendationCategory.INDOOR_AIR]: 'Indoor Air',
-  [RecommendationCategory.SUSTAINABLE_ALTERNATIVE]: 'Sustainable Alternative',
-  [RecommendationCategory.COMMUNITY_ACTION]: 'Community Action',
+  [RecommendationCategory.DAILY_ROUTINE]: 'Daily Routine (Low-Emission)',
+  [RecommendationCategory.INDOOR_AIR]: 'Indoor Air Hacks',
+  [RecommendationCategory.SUSTAINABLE_ALTERNATIVE]: 'Sustainable Alternatives',
+  [RecommendationCategory.HEALTH_ALERT]: 'Health Alerts',
+};
+
+const URGENCY_LABELS: Record<UrgencyLevel, string> = {
+  [UrgencyLevel.CRITICAL]: 'Urgent Priority',
+  [UrgencyLevel.HIGH]: 'High Priority',
+  [UrgencyLevel.STANDARD]: 'Standard',
 };
 
 /**
@@ -60,7 +67,6 @@ export function formatTimestamp(isoString: string): string {
 
 /**
  * Calculates combined sequential PM2.5 exposure reduction across recommendations (0-100%).
- * Uses independent multiplicative reduction: 1 - product(1 - r_i / 100).
  */
 export function calculateTotalPM25Reduction(recommendations: readonly Recommendation[]): number {
   if (recommendations.length === 0) {
@@ -80,4 +86,11 @@ export function calculateTotalPM25Reduction(recommendations: readonly Recommenda
  */
 export function formatCategoryLabel(category: RecommendationCategory): string {
   return RECOMMENDATION_CATEGORY_LABELS[category];
+}
+
+/**
+ * Maps an UrgencyLevel enum value to a human-readable label.
+ */
+export function formatUrgencyLabel(urgency: UrgencyLevel): string {
+  return URGENCY_LABELS[urgency];
 }

@@ -8,9 +8,14 @@ export const INPUT_LIMITS = {
   MAX_SUMMARY_LENGTH: 400,
   MAX_RECOMMENDATION_TEXT_LENGTH: 350,
   MIN_RECOMMENDATIONS: 1,
-  MAX_RECOMMENDATIONS: 6,
+  MAX_RECOMMENDATIONS: 8,
   MIN_PM25_REDUCTION: 0,
   MAX_PM25_REDUCTION: 100,
+  MIN_AQI_VALUE: 0,
+  MAX_AQI_VALUE: 500,
+  MAX_PM25_VALUE: 1000,
+  SUBMIT_COOLDOWN_SECONDS: 5,
+  COOLDOWN_TICK_MS: 1000,
 } as const;
 
 /**
@@ -18,6 +23,8 @@ export const INPUT_LIMITS = {
  */
 export const API_ENDPOINTS = {
   ASSISTANT_RECOMMENDATIONS: '/api/assistant/recommendations',
+  AQI_LIVE: '/api/aqi',
+  WAQI_FEED: 'https://api.waqi.info/feed',
   GEOCODING: 'https://geocoding-api.open-meteo.com/v1/search',
   AIR_QUALITY: 'https://air-quality-api.open-meteo.com/v1/air-quality',
 } as const;
@@ -48,9 +55,11 @@ export const HTTP_STATUS = {
  * Centralized user-friendly error messages.
  */
 export const ERROR_MESSAGES = {
-  INVALID_CITY: 'Please enter a valid city name between 2 and 80 characters.',
+  INVALID_CITY: 'Enter a valid city name (2 to 80 characters, letters and spaces).',
+  INVALID_MANUAL_AQI: 'Enter a numeric US AQI between 0 and 500.',
   CITY_NOT_FOUND: 'Could not find air quality monitoring coordinates for that city.',
-  AQI_FETCH_FAILED: 'Unable to retrieve live air quality data right now. Please try again.',
+  AQI_FETCH_FAILED:
+    'Live air quality lookup failed. Enter the current AQI manually below to continue.',
   AI_REQUEST_FAILED: 'Unable to generate personalized recommendations right now.',
   MISSING_API_KEY:
     'Server Gemini API key is not configured. Check Settings > Secrets in AI Studio.',

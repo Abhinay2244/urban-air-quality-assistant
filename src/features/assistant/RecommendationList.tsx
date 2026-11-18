@@ -1,65 +1,115 @@
 import type { ReactElement } from 'react';
+import { LoadingSkeleton } from '../../components/LoadingSkeleton.tsx';
 import { SectionCard } from '../../components/SectionCard.tsx';
+import { SectionCategoryIcon } from '../../components/SectionCategoryIcon.tsx';
 import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
-import type { AssistantResponse } from '../../types/index.ts';
-import { formatCategoryLabel } from '../../utils/formatting.ts';
+import { SECTION_THEMES } from '../../constants/uiTheme.ts';
+import {
+  type AQIData,
+  type AssistantResponse,
+  RecommendationCategory,
+  type UserProfile,
+} from '../../types/index.ts';
+import { EmptyPlanState } from './EmptyPlanState.tsx';
+import { RecommendationCard } from './RecommendationCard.tsx';
+import { WhyThesePanel } from './WhyThesePanel.tsx';
 
 /**
  * Props for RecommendationList feature component.
  */
 export interface RecommendationListProps {
   response: AssistantResponse | null;
+  profile: UserProfile;
+  aqiData: AQIData | null;
+  isLoading: boolean;
+  onSelectSample: (sampleProfile: UserProfile) => void;
 }
 
+const SECTION_ORDER: ReadonlyArray<{ category: RecommendationCategory; heading: string }> = [
+  { category: RecommendationCategory.HEALTH_ALERT, heading: UI_LABELS.SECTION_HEALTH_ALERTS },
+  { category: RecommendationCategory.DAILY_ROUTINE, heading: UI_LABELS.SECTION_DAILY_ROUTINE },
+  { category: RecommendationCategory.INDOOR_AIR, heading: UI_LABELS.SECTION_INDOOR_AIR },
+  {
+    category: RecommendationCategory.SUSTAINABLE_ALTERNATIVE,
+    heading: UI_LABELS.SECTION_SUSTAINABLE,
+  },
+];
+
 /**
- * Renders the GenAI air quality action plan and direct impact explanation per item.
+ * Renders loading skeleton, empty illustration state, or the four themed recommendation sections.
  */
-export function RecommendationList({ response }: RecommendationListProps): ReactElement {
+export function RecommendationList({
+  response,
+  profile,
+  aqiData,
+  isLoading,
+  onSelectSample,
+}: RecommendationListProps): ReactElement {
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
   if (!response) {
-    return (
-      <SectionCard title={UI_LABELS.ASSISTANT_SECTION_TITLE}>
-        <p className="text-sm text-slate-600">{APP_TEXT.EMPTY_PLAN_MESSAGE}</p>
-      </SectionCard>
-    );
+    return <EmptyPlanState onSelectSample={onSelectSample} />;
   }
 
   return (
     <SectionCard title={UI_LABELS.ASSISTANT_SECTION_TITLE}>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {response.isFallback && (
-          <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-700/80 dark:bg-amber-950/50 dark:text-amber-100">
             {APP_TEXT.FALLBACK_NOTICE}
           </p>
         )}
 
-        <p className="text-sm text-slate-800">{response.summary}</p>
+        <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+          {response.summary}
+        </p>
 
-        <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
-          <span className="font-semibold text-slate-900">{UI_LABELS.PRIORITY_LABEL}: </span>
-          <span className="text-slate-700">{response.priorityGuidance}</span>
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/80 p-4 text-sm dark:border-teal-800/70 dark:bg-teal-950/40">
+          <span className="font-semibold text-teal-950 dark:text-teal-200">
+            {UI_LABELS.PRIORITY_LABEL}:{' '}
+          </span>
+          <span className="text-slate-800 dark:text-slate-200">{response.priorityGuidance}</span>
         </div>
 
-        <ul className="space-y-3">
-          {response.recommendations.map((item, index) => (
-            <li key={`${item.title}-${index}`} className="rounded border border-slate-200 p-4">
-              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-slate-900">{item.title}</h3>
-                <span className="text-xs font-medium text-slate-600">
-                  {formatCategoryLabel(item.category)}
-                </span>
+        <WhyThesePanel profile={profile} aqiData={aqiData} />
+
+        <div className="space-y-6">
+          {SECTION_ORDER.map((section) => {
+            const items = response.recommendations.filter(
+              (rec) => rec.category === section.category,
+            );
+            const theme = SECTION_THEMES[section.category];
+            const sectionBoxClass = items.length > 0 ? theme.containerClass : '';
+
+            return (
+              <div key={section.category} className={`space-y-3 ${sectionBoxClass}`}>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${theme.iconBg}`}
+                  >
+                    <SectionCategoryIcon category={section.category} />
+                  </span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                    {section.heading}
+                  </h3>
+                </div>
+                {items.length === 0 ? (
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {APP_TEXT.EMPTY_CATEGORY_MESSAGE}
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {items.map((item, index) => (
+                      <RecommendationCard key={`${item.title}-${index}`} item={item} />
+                    ))}
+                  </ul>
+                )}
               </div>
-              <p className="mb-2 text-sm text-slate-700">{item.action}</p>
-              <p className="text-xs text-slate-600">
-                <span className="font-semibold">{UI_LABELS.IMPACT_EXPLANATION_LABEL}: </span>
-                {item.impactExplanation}
-              </p>
-              <p className="mt-1 text-xs font-medium text-slate-800">
-                {UI_LABELS.PM25_REDUCTION_LABEL}: {item.estimatedPM25Reduction}
-                {APP_TEXT.REDUCTION_PERCENT_UNIT}
-              </p>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </div>
       </div>
     </SectionCard>
   );

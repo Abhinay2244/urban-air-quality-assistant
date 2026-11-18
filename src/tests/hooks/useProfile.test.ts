@@ -21,19 +21,22 @@ describe('useProfile hook', () => {
     expect(result.current.profile.city).toBe('Lahore');
     expect(result.current.profile.commuteMode).toBe(CommuteMode.REMOTE);
     expect(result.current.validationError).toBeNull();
+    expect(result.current.fieldErrors.city).toBeUndefined();
   });
 
-  it('sets a validationError when city is invalid', () => {
+  it('sets live inline fieldError immediately when city becomes invalid', () => {
     const { result } = renderHook(() => useProfile());
 
     act(() => {
       result.current.updateField('city', ' ');
     });
 
+    expect(result.current.fieldErrors.city).toBeDefined();
+
     act(() => {
-      result.current.validateProfile();
+      result.current.updateField('city', 'Beijing');
     });
 
-    expect(result.current.validationError).not.toBeNull();
+    expect(result.current.fieldErrors.city).toBeUndefined();
   });
 });

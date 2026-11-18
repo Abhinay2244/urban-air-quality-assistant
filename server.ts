@@ -3,6 +3,7 @@ import express, { type Express } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { handleLiveAqiLookup } from './server/aqiHandler.ts';
 import { handleAssistantRecommendations } from './server/geminiHandler.ts';
 import { API_ENDPOINTS, GEMINI_CONFIG } from './src/constants/limits.ts';
 
@@ -13,6 +14,7 @@ const PRODUCTION_ENV = 'production';
 
 async function configureApp(app: Express): Promise<void> {
   app.use(express.json());
+  app.get(API_ENDPOINTS.AQI_LIVE, handleLiveAqiLookup);
   app.post(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, handleAssistantRecommendations);
 
   if (process.env.NODE_ENV === PRODUCTION_ENV && fs.existsSync(DIST_DIR)) {

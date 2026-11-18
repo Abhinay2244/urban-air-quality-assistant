@@ -1,134 +1,130 @@
 import type { FormEvent, ReactElement } from 'react';
+import { ChipToggle } from '../../components/ChipToggle.tsx';
+import { SpinnerIcon } from '../../components/Icons.tsx';
+import { CommuteIcon, HomeTypeIcon } from '../../components/ProfileIcons.tsx';
 import { SectionCard } from '../../components/SectionCard.tsx';
-import { APP_TEXT, PROFILE_OPTIONS, UI_LABELS } from '../../constants/config.ts';
-import type { CommuteMode, FamilyType, HomeType, UserProfile } from '../../types/index.ts';
+import { SegmentedControl } from '../../components/SegmentedControl.tsx';
+import { SensitivityIcon } from '../../components/SensitivityIcon.tsx';
+import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { UI_COPY } from '../../constants/uiTheme.ts';
+import type { ProfileFieldErrors } from '../../hooks/useProfile.ts';
+import type { UserProfile } from '../../types/index.ts';
+import { LocationCard } from './LocationCard.tsx';
+import {
+  COMMUTE_MODE_FIELD,
+  FAMILY_TYPE_FIELD,
+  HOME_TYPE_FIELD,
+  PROFILE_SENSITIVITY_FIELDS,
+} from './profileFields.ts';
 
 /**
  * Props for ProfileForm feature component.
  */
 export interface ProfileFormProps {
   profile: UserProfile;
+  fieldErrors: ProfileFieldErrors;
   isLoading: boolean;
+  cooldownSeconds: number;
   onFieldChange: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
   onSubmit: () => void;
 }
 
 /**
- * Captures household location, composition, commute, and housing details.
+ * Captures location, household sensitivities, and lifestyle details across three clear cards.
  */
 export function ProfileForm({
   profile,
+  fieldErrors,
   isLoading,
+  cooldownSeconds,
   onFieldChange,
   onSubmit,
 }: ProfileFormProps): ReactElement {
+  const cityError = fieldErrors.city;
+  const isSubmitDisabled = isLoading || cooldownSeconds > 0 || Boolean(cityError);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     onSubmit();
   };
 
+  const buttonLabel = isLoading
+    ? APP_TEXT.LOADING_LABEL
+    : cooldownSeconds > 0
+      ? `${UI_COPY.COOLDOWN_BUTTON_PREFIX} ${cooldownSeconds}${UI_COPY.COOLDOWN_BUTTON_SUFFIX}`
+      : APP_TEXT.SUBMIT_LABEL;
+
   return (
-    <SectionCard title={UI_LABELS.PROFILE_SECTION_TITLE}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">{UI_LABELS.CITY_LABEL}</span>
-            <input
-              type="text"
-              value={profile.city}
-              placeholder={UI_LABELS.CITY_PLACEHOLDER}
-              onChange={(event) => onFieldChange('city', event.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-            />
-          </label>
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <LocationCard
+        city={profile.city}
+        cityError={cityError}
+        onCityChange={(nextCity) => onFieldChange('city', nextCity)}
+      />
 
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">
-              {UI_LABELS.FAMILY_TYPE_LABEL}
-            </span>
-            <select
-              value={profile.familyType}
-              onChange={(event) => onFieldChange('familyType', event.target.value as FamilyType)}
-              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-            >
-              {PROFILE_OPTIONS.FAMILY_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+      <SectionCard title={UI_COPY.HOUSEHOLD_CARD_TITLE}>
+        <div className="space-y-5">
+          <SegmentedControl
+            legend={FAMILY_TYPE_FIELD.legend}
+            value={profile.familyType}
+            options={FAMILY_TYPE_FIELD.options}
+            onChange={(nextValue) => onFieldChange('familyType', nextValue)}
+          />
 
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">
-              {UI_LABELS.COMMUTE_MODE_LABEL}
-            </span>
-            <select
-              value={profile.commuteMode}
-              onChange={(event) => onFieldChange('commuteMode', event.target.value as CommuteMode)}
-              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-            >
-              {PROFILE_OPTIONS.COMMUTE_MODES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+          <fieldset className="space-y-2.5">
+            <legend className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              {UI_LABELS.VULNERABILITY_GROUP_LEGEND}
+            </legend>
+            <div className="flex flex-wrap gap-2.5">
+              {PROFILE_SENSITIVITY_FIELDS.map((item) => (
+                <ChipToggle
+                  key={item.field}
+                  label={item.label}
+                  checked={profile[item.field]}
+                  icon={<SensitivityIcon field={item.field} />}
+                  onToggle={(nextChecked) => onFieldChange(item.field, nextChecked)}
+                />
               ))}
-            </select>
-          </label>
-
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">
-              {UI_LABELS.HOME_TYPE_LABEL}
-            </span>
-            <select
-              value={profile.homeType}
-              onChange={(event) => onFieldChange('homeType', event.target.value as HomeType)}
-              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-            >
-              {PROFILE_OPTIONS.HOME_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            </div>
+          </fieldset>
         </div>
+      </SectionCard>
 
-        <div className="flex flex-wrap gap-4 text-sm text-slate-700">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={profile.hasChildren}
-              onChange={(event) => onFieldChange('hasChildren', event.target.checked)}
-            />
-            <span>{UI_LABELS.HAS_CHILDREN_LABEL}</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={profile.hasElderly}
-              onChange={(event) => onFieldChange('hasElderly', event.target.checked)}
-            />
-            <span>{UI_LABELS.HAS_ELDERLY_LABEL}</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={profile.hasRespiratoryCondition}
-              onChange={(event) => onFieldChange('hasRespiratoryCondition', event.target.checked)}
-            />
-            <span>{UI_LABELS.HAS_RESPIRATORY_LABEL}</span>
-          </label>
+      <SectionCard title={UI_COPY.LIFESTYLE_CARD_TITLE}>
+        <div className="space-y-5">
+          <SegmentedControl
+            legend={COMMUTE_MODE_FIELD.legend}
+            value={profile.commuteMode}
+            options={COMMUTE_MODE_FIELD.options.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+              icon: <CommuteIcon mode={opt.value} />,
+            }))}
+            onChange={(nextValue) => onFieldChange('commuteMode', nextValue)}
+          />
+
+          <SegmentedControl
+            legend={HOME_TYPE_FIELD.legend}
+            value={profile.homeType}
+            options={HOME_TYPE_FIELD.options.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+              icon: <HomeTypeIcon homeType={opt.value} />,
+            }))}
+            onChange={(nextValue) => onFieldChange('homeType', nextValue)}
+          />
         </div>
+      </SectionCard>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {isLoading ? APP_TEXT.LOADING_LABEL : APP_TEXT.SUBMIT_LABEL}
-        </button>
-      </form>
-    </SectionCard>
+      <button
+        type="submit"
+        disabled={isSubmitDisabled}
+        aria-disabled={isSubmitDisabled}
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-2xl bg-teal-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
+      >
+        {isLoading && <SpinnerIcon />}
+        <span>{buttonLabel}</span>
+      </button>
+    </form>
   );
 }

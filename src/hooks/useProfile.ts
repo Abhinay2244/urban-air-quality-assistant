@@ -1,7 +1,12 @@
 import { useCallback, useState } from 'react';
 import { DEFAULT_USER_PROFILE } from '../constants/config.ts';
 import type { AppError, UserProfile } from '../types/index.ts';
-import { validateUserProfile } from '../utils/validation.ts';
+import { validateCity, validateUserProfile } from '../utils/validation.ts';
+
+/**
+ * Per-field inline validation errors for UserProfile.
+ */
+export type ProfileFieldErrors = Partial<Record<keyof UserProfile, AppError>>;
 
 /**
  * Return value of the useProfile custom hook.
@@ -9,21 +14,34 @@ import { validateUserProfile } from '../utils/validation.ts';
 export interface UseProfileResult {
   profile: UserProfile;
   validationError: AppError | null;
+  fieldErrors: ProfileFieldErrors;
   updateField: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
   validateProfile: () => UserProfile | null;
   resetProfile: () => void;
 }
 
 /**
- * Manages household profile state, field updates, and validation.
+ * Manages household profile state, live field validation, and reset.
  */
 export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): UseProfileResult {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
   const [validationError, setValidationError] = useState<AppError | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
 
   const updateField = useCallback(
     <K extends keyof UserProfile>(field: K, value: UserProfile[K]): void => {
       setProfile((prev) => ({ ...prev, [field]: value }));
+
+      if (field === 'city' && typeof value === 'string') {
+        const cityCheck = validateCity(value);
+        setFieldErrors((prev) => ({
+          ...prev,
+          city: cityCheck.isValid ? undefined : cityCheck.error,
+        }));
+        setValidationError(null);
+        return;
+      }
+
       setValidationError(null);
     },
     [],
@@ -33,10 +51,12 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
     const result = validateUserProfile(profile);
     if (!result.isValid || result.error) {
       setValidationError(result.error ?? null);
+      setFieldErrors((prev) => ({ ...prev, city: result.error }));
       return null;
     }
 
     setValidationError(null);
+    setFieldErrors({});
     setProfile(result.value);
     return result.value;
   }, [profile]);
@@ -44,11 +64,13 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
   const resetProfile = useCallback((): void => {
     setProfile(initialProfile);
     setValidationError(null);
+    setFieldErrors({});
   }, [initialProfile]);
 
   return {
     profile,
     validationError,
+    fieldErrors,
     updateField,
     validateProfile,
     resetProfile,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAQIDataByCity } from '../../services/aqiService.ts';
+import { createManualAQIData, fetchAQIDataByCity } from '../../services/aqiService.ts';
 import { AQICategoryId, ErrorCode } from '../../types/index.ts';
 
 describe('aqiService', () => {
@@ -7,50 +7,56 @@ describe('aqiService', () => {
     vi.restoreAllMocks();
   });
 
-  it('fetches geocoding coordinates and live AQI data for a valid city', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
+  it('fetches live AQI data from the server proxy for a valid city', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            results: [{ name: 'New Delhi', country: 'India', latitude: 28.61, longitude: 77.2 }],
+            city: 'New Delhi',
+            country: 'India',
+            aqi: 245,
+            pm25: 195.4,
+            pm10: 290.1,
+            no2: 65.2,
+            o3: 32.0,
+            updatedAt: '2026-11-18T08:00',
           }),
           { status: 200 },
         ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            current: {
-              time: '2026-11-18T08:00',
-              us_aqi: 245,
-              pm2_5: 195.4,
-              pm10: 290.1,
-              nitrogen_dioxide: 65.2,
-              ozone: 32.0,
-            },
-          }),
-          { status: 200 },
-        ),
-      );
-
-    vi.stubGlobal('fetch', fetchMock);
+      ),
+    );
 
     const data = await fetchAQIDataByCity('New Delhi');
     expect(data.city).toBe('New Delhi');
     expect(data.country).toBe('India');
     expect(data.aqi).toBe(245);
+    expect(data.source).toBe('live');
     expect(data.category).toBe(AQICategoryId.VERY_UNHEALTHY);
   });
 
-  it('throws a typed CITY_NOT_FOUND error when geocoding returns no matches', async () => {
+  it('throws a typed CITY_NOT_FOUND error when the AQI proxy returns 404', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 })),
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ code: ErrorCode.CITY_NOT_FOUND, message: 'City not found' }),
+            { status: 404 },
+          ),
+        ),
     );
 
     await expect(fetchAQIDataByCity('AtlantisXYZ')).rejects.toMatchObject({
       code: ErrorCode.CITY_NOT_FOUND,
     });
+  });
+
+  it('creates validated manual AQI data and rejects out-of-range inputs', () => {
+    const manual = createManualAQIData('Lahore', 220);
+    expect(manual.source).toBe('manual');
+    expect(manual.category).toBe(AQICategoryId.VERY_UNHEALTHY);
+    expect(() => createManualAQIData('Lahore', 700)).toThrow();
   });
 });

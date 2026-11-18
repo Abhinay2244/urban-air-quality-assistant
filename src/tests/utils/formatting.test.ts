@@ -35,9 +35,10 @@ describe('formatting utilities', () => {
   });
 
   it('maps recommendation categories to readable labels', () => {
-    expect(formatCategoryLabel(RecommendationCategory.INDOOR_AIR)).toBe('Indoor Air');
+    expect(formatCategoryLabel(RecommendationCategory.INDOOR_AIR)).toBe('Indoor Air Hacks');
     expect(formatCategoryLabel(RecommendationCategory.SUSTAINABLE_ALTERNATIVE)).toBe(
-      'Sustainable Alternative',
+      'Sustainable Alternatives',
     );
+    expect(formatCategoryLabel(RecommendationCategory.HEALTH_ALERT)).toBe('Health Alerts');
   });
 });

@@ -36,7 +36,16 @@ export enum RecommendationCategory {
   DAILY_ROUTINE = 'DAILY_ROUTINE',
   INDOOR_AIR = 'INDOOR_AIR',
   SUSTAINABLE_ALTERNATIVE = 'SUSTAINABLE_ALTERNATIVE',
-  COMMUNITY_ACTION = 'COMMUNITY_ACTION',
+  HEALTH_ALERT = 'HEALTH_ALERT',
+}
+
+/**
+ * Urgency tier assigned dynamically by the rule engine.
+ */
+export enum UrgencyLevel {
+  CRITICAL = 'CRITICAL',
+  HIGH = 'HIGH',
+  STANDARD = 'STANDARD',
 }
 
 /**
@@ -90,6 +99,7 @@ export interface AQIData {
   o3: number;
   category: AQICategoryId;
   updatedAt: string;
+  source?: 'live' | 'manual';
 }
 
 /**
@@ -114,6 +124,7 @@ export interface Recommendation {
   action: string;
   impactExplanation: string;
   estimatedPM25Reduction: number;
+  urgency?: UrgencyLevel;
 }
 
 /**
