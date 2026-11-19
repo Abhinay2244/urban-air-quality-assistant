@@ -1,4 +1,10 @@
 /**
+ * @module utils/math
+ * Responsibility: Provide pure, finite-safe numeric rounding and clamping helpers.
+ * Must not depend on domain constants, services, or browser APIs.
+ */
+
+/**
  * Rounds a finite numeric value and clamps it inclusively within [min, max].
  * Non-finite inputs safely default to min.
  */

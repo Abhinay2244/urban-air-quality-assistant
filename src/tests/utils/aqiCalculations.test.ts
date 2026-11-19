@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { AQICategoryId, RecommendationCategory } from '../../types/index.ts';
+import { AqiCategoryId, RecommendationCategory } from '../../types/index.ts';
 import {
   calculateTotalPM25Reduction,
-  getAQICategoryByValue,
-  getAQICategoryInfo,
+  getAqiCategoryByValue,
+  getAqiCategoryInfo,
 } from '../../utils/aqiCalculations.ts';
 import { clampRounded } from '../../utils/math.ts';
 
@@ -37,7 +37,7 @@ describe('math and AQI calculation utilities', () => {
   });
 
   it('resolves AQI category info by id and value', () => {
-    expect(getAQICategoryByValue(215).id).toBe(AQICategoryId.VERY_UNHEALTHY);
-    expect(getAQICategoryInfo(AQICategoryId.GOOD).label).toBe('Good');
+    expect(getAqiCategoryByValue(215).id).toBe(AqiCategoryId.VERY_UNHEALTHY);
+    expect(getAqiCategoryInfo(AqiCategoryId.GOOD).label).toBe('Good');
   });
 });

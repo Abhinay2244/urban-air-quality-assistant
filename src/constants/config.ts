@@ -1,7 +1,10 @@
+/**
+ * @module constants/config
+ * Responsibility: Centralize user-facing labels, default profile state, and selectable form options.
+ * Must not re-export unrelated HTTP/limit constants or contain runtime business logic.
+ */
 import { CommuteMode, FamilyType, HomeType, type UserProfile } from '../types/index.ts';
-import { DEFAULT_COUNTRY } from './limits.ts';
-
-export { API_ENDPOINTS, ERROR_MESSAGES, INPUT_LIMITS } from './limits.ts';
+import { DEFAULT_COUNTRY } from './server.ts';
 
 /**
  * User-facing labels and messages centralized to avoid hardcoded UI strings.
@@ -12,7 +15,7 @@ export const APP_TEXT = {
     'Tailored low-emission routines, indoor air strategies, and measurable exposure guidance for winter smog.',
   SUBMIT_LABEL: 'Get Air Quality Plan',
   LOADING_LABEL: 'Analyzing local air & generating plan...',
-  EMPTY_PLAN_MESSAGE:
+  EMPTY_RECOMMENDATIONS_MESSAGE:
     'Enter your city and household profile above to generate a four-part winter smog action plan.',
   EMPTY_CATEGORY_MESSAGE: 'No additional actions needed for this section at the current AQI level.',
   FALLBACK_NOTICE:

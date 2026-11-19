@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../../App.tsx';
-import { APP_TEXT, ERROR_MESSAGES, UI_LABELS } from '../../constants/config.ts';
-import { API_ENDPOINTS, ERROR_CODES } from '../../constants/limits.ts';
+import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES } from '../../constants/http.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import { RecommendationCategory } from '../../types/index.ts';
 
@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe('App integration flow', () => {
-  it('shows empty state first, then renders live results inside aria-live region after submit', async () => {
+  it('shows empty state first, renders live results inside aria-live region, and shows cooldown notice on rapid re-submit', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request): Promise<Response> => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.startsWith(API_ENDPOINTS.AQI_LIVE)) {
@@ -53,16 +53,25 @@ describe('App integration flow', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { container } = render(<App />);
-    expect(screen.getByText(UI_COPY.EMPTY_TITLE)).toBeTruthy();
+    expect(screen.getByText(UI_COPY.EMPTY_TITLE)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: APP_TEXT.SUBMIT_LABEL }));
 
     const liveRegion = container.querySelector('[aria-live="polite"]');
     await waitFor(() => {
-      expect(liveRegion?.textContent).toContain('New Delhi, India');
-      expect(liveRegion?.textContent).toContain('215');
-      expect(liveRegion?.textContent).toContain('Seal Balcony Windows');
+      expect(liveRegion).toHaveTextContent('New Delhi, India');
+      expect(liveRegion).toHaveTextContent('215');
+      expect(liveRegion).toHaveTextContent('Seal Balcony Windows');
     });
+
+    const cooldownButton = screen.getByRole<HTMLButtonElement>('button', {
+      name: new RegExp(`^${UI_COPY.COOLDOWN_BUTTON_PREFIX}`),
+    });
+    expect(cooldownButton).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(cooldownButton);
+
+    expect(screen.getByRole('status')).toHaveTextContent(/Please wait \d+ seconds?/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('shows ManualAqiForm on live AQI failure, supports ErrorBanner retry/dismiss, and renders manual plan', async () => {
@@ -95,9 +104,11 @@ describe('App integration flow', () => {
     fireEvent.click(screen.getByRole('button', { name: APP_TEXT.SUBMIT_LABEL }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert').textContent).toContain(ERROR_MESSAGES.AQI_FETCH_FAILED);
+      expect(screen.getByRole('alert')).toHaveTextContent(ERROR_MESSAGES.AQI_FETCH_FAILED);
     });
-    expect(screen.getByLabelText(UI_LABELS.MANUAL_AQI_INPUT_LABEL)).toBeTruthy();
+    expect(
+      screen.getByLabelText<HTMLInputElement>(UI_LABELS.MANUAL_AQI_INPUT_LABEL),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: UI_LABELS.RETRY_LABEL }));
     await waitFor(() => {
@@ -105,17 +116,17 @@ describe('App integration flow', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: UI_LABELS.DISMISS_ERROR_LABEL }));
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(UI_LABELS.MANUAL_AQI_INPUT_LABEL), {
+    fireEvent.change(screen.getByLabelText<HTMLInputElement>(UI_LABELS.MANUAL_AQI_INPUT_LABEL), {
       target: { value: '240' },
     });
     fireEvent.click(screen.getByRole('button', { name: UI_LABELS.MANUAL_AQI_SUBMIT_LABEL }));
 
     const liveRegion = container.querySelector('[aria-live="polite"]');
     await waitFor(() => {
-      expect(liveRegion?.textContent).toContain('240');
-      expect(liveRegion?.textContent).toContain('Seal Balcony Windows');
+      expect(liveRegion).toHaveTextContent('240');
+      expect(liveRegion).toHaveTextContent('Seal Balcony Windows');
     });
   });
 });

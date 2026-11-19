@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { MAX_STANDARD_AQI, MIN_STANDARD_AQI } from '../constants/aqi.ts';
 import { UI_LABELS } from '../constants/config.ts';
 import { AQI_VISUAL_TOKENS, GAUGE_METRICS } from '../constants/uiTheme.ts';
-import type { AQICategoryInfo } from '../types/index.ts';
+import type { AqiCategoryInfo } from '../types/index.ts';
 import { clampRounded } from '../utils/math.ts';
 
 /**
@@ -10,7 +10,7 @@ import { clampRounded } from '../utils/math.ts';
  */
 export interface AqiGaugeProps {
   aqi: number;
-  category: AQICategoryInfo;
+  category: AqiCategoryInfo;
 }
 
 /**

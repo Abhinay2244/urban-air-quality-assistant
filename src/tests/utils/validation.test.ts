@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
 import { SAFE_FALLBACK_ASSISTANT_RESPONSE } from '../../constants/prompts.ts';
-import { AQICategoryId, RecommendationCategory } from '../../types/index.ts';
+import { AqiCategoryId, RecommendationCategory } from '../../types/index.ts';
 import { parseAndValidateAssistantResponse, readStringField } from '../../utils/assistantParser.ts';
 import { buildAssistantPrompt } from '../../utils/promptBuilder.ts';
 import { sanitizeText } from '../../utils/sanitizing.ts';
 import { isOneOf, isRecord } from '../../utils/typeGuards.ts';
 import {
   unwrapValidation,
-  validateAQIData,
+  validateAqiData,
   validateCity,
   validateManualAqi,
   validateOptionalPm25,
@@ -43,15 +43,15 @@ describe('sanitizing and validation utilities', () => {
     expect(badFlag.isValid).toBe(false);
   });
 
-  it('validates AQIData, manual AQI, optional PM2.5, isRecord, isOneOf, and unwrapValidation', () => {
+  it('validates AqiData, manual AQI, optional PM2.5, isRecord, isOneOf, and unwrapValidation', () => {
     expect(isRecord({ a: 1 })).toBe(true);
     expect(isRecord([1, 2])).toBe(false);
     expect(isRecord(null)).toBe(false);
-    expect(isOneOf('GOOD', Object.values(AQICategoryId))).toBe(true);
-    expect(isOneOf('INVALID', Object.values(AQICategoryId))).toBe(false);
+    expect(isOneOf('GOOD', Object.values(AqiCategoryId))).toBe(true);
+    expect(isOneOf('INVALID', Object.values(AqiCategoryId))).toBe(false);
 
     expect(
-      validateAQIData({
+      validateAqiData({
         city: 'Delhi',
         country: 'IN',
         aqi: Number.NaN,
@@ -59,7 +59,7 @@ describe('sanitizing and validation utilities', () => {
         pm10: 80,
         no2: 20,
         o3: 15,
-        category: AQICategoryId.UNHEALTHY,
+        category: AqiCategoryId.UNHEALTHY,
         updatedAt: '2026-11-18T08:00:00Z',
       }),
     ).toBe(false);
@@ -103,7 +103,7 @@ describe('sanitizing and validation utilities', () => {
       pm10: 240,
       no2: 40,
       o3: 20,
-      category: AQICategoryId.VERY_UNHEALTHY,
+      category: AqiCategoryId.VERY_UNHEALTHY,
       updatedAt: '2026-11-18T08:00:00Z',
     });
     expect(prompt).toContain('City: Lahore, Pakistan');

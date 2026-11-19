@@ -1,11 +1,16 @@
-import { AQICategoryId, type AQICategoryInfo } from '../types/index.ts';
+/**
+ * @module constants/aqi
+ * Responsibility: Define US EPA AQI breakpoints, public health guidance, and WHO guideline thresholds.
+ * Must not contain UI styling classes, HTTP endpoints, or calculation functions.
+ */
+import { AqiCategoryId, type AqiCategoryInfo } from '../types/index.ts';
 
 /**
  * Standard US EPA AQI breakpoints, color tokens, and public health guidance.
  */
-export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
+export const AQI_CATEGORIES: readonly AqiCategoryInfo[] = [
   {
-    id: AQICategoryId.GOOD,
+    id: AqiCategoryId.GOOD,
     label: 'Good',
     minAqi: 0,
     maxAqi: 50,
@@ -13,7 +18,7 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
       'Air quality is satisfactory. Normal outdoor routines and natural ventilation are safe.',
   },
   {
-    id: AQICategoryId.MODERATE,
+    id: AqiCategoryId.MODERATE,
     label: 'Moderate',
     minAqi: 51,
     maxAqi: 100,
@@ -21,7 +26,7 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
       'Air quality is acceptable, though unusually sensitive individuals should monitor symptoms.',
   },
   {
-    id: AQICategoryId.UNHEALTHY_SENSITIVE,
+    id: AqiCategoryId.UNHEALTHY_SENSITIVE,
     label: 'Unhealthy for Sensitive Groups',
     minAqi: 101,
     maxAqi: 150,
@@ -29,7 +34,7 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
       'Children, older adults, and people with respiratory conditions should limit prolonged outdoor exertion.',
   },
   {
-    id: AQICategoryId.UNHEALTHY,
+    id: AqiCategoryId.UNHEALTHY,
     label: 'Unhealthy',
     minAqi: 151,
     maxAqi: 200,
@@ -37,7 +42,7 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
       'Everyone may begin to experience health effects. Shift strenuous activities indoors and run HEPA filtration.',
   },
   {
-    id: AQICategoryId.VERY_UNHEALTHY,
+    id: AqiCategoryId.VERY_UNHEALTHY,
     label: 'Very Unhealthy',
     minAqi: 201,
     maxAqi: 300,
@@ -45,7 +50,7 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
       'Health alert: seal drafts, run indoor air purifiers continuously, and wear N95 masks for essential trips.',
   },
   {
-    id: AQICategoryId.HAZARDOUS,
+    id: AqiCategoryId.HAZARDOUS,
     label: 'Hazardous',
     minAqi: 301,
     maxAqi: 500,
@@ -60,7 +65,7 @@ export const AQI_CATEGORIES: readonly AQICategoryInfo[] = [
 export const AQI_THRESHOLDS = {
   SENSITIVE: 101,
   UNHEALTHY: 151,
-  SEVERE: 201,
+  VERY_UNHEALTHY: 201,
 } as const;
 
 /**

@@ -1,6 +1,9 @@
 import type { ReactElement } from 'react';
 
-interface IconProps {
+/**
+ * Props shared by inline SVG icon components.
+ */
+export interface IconProps {
   className?: string;
 }
 

@@ -1,18 +1,19 @@
+/**
+ * @module server/geminiHandler
+ * Responsibility: Validate recommendation request payloads and invoke @google/genai on the server.
+ * Must not leak GEMINI_API_KEY, parse UI formatting, or apply client-side presentation logic.
+ */
 import { GoogleGenAI, Type, type Schema } from '@google/genai';
 import type { Request, Response } from 'express';
-import {
-  ERROR_CODES,
-  ERROR_MESSAGES,
-  GEMINI_CONFIG,
-  HTTP_STATUS,
-} from '../src/constants/limits.ts';
+import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
 import {
   ASSISTANT_SCHEMA_DESCRIPTIONS,
   ASSISTANT_SYSTEM_INSTRUCTION,
 } from '../src/constants/prompts.ts';
+import { GEMINI_CONFIG } from '../src/constants/server.ts';
 import { buildAssistantPrompt } from '../src/utils/promptBuilder.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
-import { validateAQIData, validateUserProfile } from '../src/utils/validation.ts';
+import { validateAqiData, validateUserProfile } from '../src/utils/validation.ts';
 import { logServerError, mapGeminiUpstreamError, sendErrorResponse } from './errorResponse.ts';
 
 const ASSISTANT_RESPONSE_SCHEMA: Schema = {
@@ -75,7 +76,7 @@ export async function handleAssistantRecommendations(req: Request, res: Response
   }
 
   const profileResult = validateUserProfile(req.body.profile);
-  if (!profileResult.isValid || !validateAQIData(req.body.aqiData)) {
+  if (!profileResult.isValid || !validateAqiData(req.body.aqiData)) {
     sendErrorResponse(
       res,
       HTTP_STATUS.BAD_REQUEST,

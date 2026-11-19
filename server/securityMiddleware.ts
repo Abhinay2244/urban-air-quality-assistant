@@ -1,11 +1,11 @@
+/**
+ * @module server/securityMiddleware
+ * Responsibility: Apply HTTP security headers/CSP and enforce bounded per-IP API rate limiting.
+ * Must not inspect application domain payloads or invoke external upstream APIs.
+ */
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import {
-  ERROR_CODES,
-  ERROR_MESSAGES,
-  HTTP_STATUS,
-  RATE_LIMIT_CONFIG,
-  SECURITY_HEADERS,
-} from '../src/constants/limits.ts';
+import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
+import { RATE_LIMIT_CONFIG, SECURITY_HEADERS } from '../src/constants/server.ts';
 import { sendErrorResponse } from './errorResponse.ts';
 
 interface RateLimitEntry {
@@ -68,6 +68,8 @@ export function createApiRateLimiter(
     const clientIp = req.ip || req.socket.remoteAddress || UNKNOWN_IP;
     const current = hits.get(clientIp);
 
+    // Why: A fixed per-IP window capped by maxEntries bounds upstream Gemini/AQI proxy spend
+    // while preventing memory exhaustion under spoofed-IP traffic spikes.
     if (!current || now >= current.resetAt) {
       pruneExpiredEntries(hits, now, maxEntries);
       hits.set(clientIp, { count: 1, resetAt: now + windowMs });

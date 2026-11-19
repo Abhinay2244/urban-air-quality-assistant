@@ -1,10 +1,27 @@
-import { ERROR_MESSAGES } from '../constants/limits.ts';
+/**
+ * @module services/httpClient
+ * Responsibility: Execute fetch requests, normalize network/server errors, and validate JSON shapes.
+ * Must not hold React state, access Express internals, or swallow AbortError cancellations.
+ */
+import { ERROR_MESSAGES } from '../constants/http.ts';
 import { ErrorCode } from '../types/index.ts';
 import { createAppError, isAppError } from '../utils/errors.ts';
 
 /**
+ * Checks whether an unknown thrown value represents a cancelled fetch AbortError.
+ */
+export function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof Error && error.name === 'AbortError') ||
+    (typeof DOMException !== 'undefined' &&
+      error instanceof DOMException &&
+      error.name === 'AbortError')
+  );
+}
+
+/**
  * Fetches JSON from a client API endpoint, mapping fetch TypeErrors to NETWORK_ERROR,
- * propagating server AppErrors, and validating the parsed payload via a runtime type guard.
+ * rethrowing AbortError unmodified, propagating server AppErrors, and validating the payload.
  */
 export async function fetchJsonOrThrow<T>(
   url: string,
@@ -17,6 +34,9 @@ export async function fetchJsonOrThrow<T>(
   try {
     response = await fetch(url, init);
   } catch (error: unknown) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     if (error instanceof TypeError) {
       throw createAppError(ErrorCode.NETWORK_ERROR, ERROR_MESSAGES.NETWORK_ERROR);
     }
@@ -34,7 +54,10 @@ export async function fetchJsonOrThrow<T>(
   let raw: unknown;
   try {
     raw = await response.json();
-  } catch {
+  } catch (error: unknown) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     throw createAppError(fallbackCode, fallbackMessage);
   }
 

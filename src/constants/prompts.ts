@@ -1,3 +1,8 @@
+/**
+ * @module constants/prompts
+ * Responsibility: Define Gemini system instructions, JSON schema field descriptions, and safe fallback guidance.
+ * Must not call the Gemini SDK, parse runtime responses, or read environment variables.
+ */
 import type { AssistantResponse, RecommendationCategory } from '../types/index.ts';
 
 /**

@@ -1,3 +1,8 @@
+/**
+ * @module utils/formatting
+ * Responsibility: Format pollutant metrics, timestamps, and urgency labels for display.
+ * Must not perform validation, network calls, or React state updates.
+ */
 import { APP_TEXT } from '../constants/config.ts';
 import { UrgencyLevel } from '../types/index.ts';
 

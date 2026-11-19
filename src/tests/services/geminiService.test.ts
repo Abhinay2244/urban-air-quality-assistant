@@ -3,13 +3,13 @@ import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
 import { SAFE_FALLBACK_ASSISTANT_RESPONSE } from '../../constants/prompts.ts';
 import { getAirQualityRecommendations } from '../../services/geminiService.ts';
 import {
-  AQICategoryId,
-  type AQIData,
+  AqiCategoryId,
+  type AqiData,
   ErrorCode,
   RecommendationCategory,
 } from '../../types/index.ts';
 
-const SAMPLE_AQI_DATA: AQIData = {
+const SAMPLE_AQI_DATA: AqiData = {
   city: 'New Delhi',
   country: 'India',
   aqi: 260,
@@ -17,7 +17,7 @@ const SAMPLE_AQI_DATA: AQIData = {
   pm10: 270,
   no2: 58,
   o3: 24,
-  category: AQICategoryId.VERY_UNHEALTHY,
+  category: AqiCategoryId.VERY_UNHEALTHY,
   updatedAt: '2026-11-18T08:00:00Z',
 };
 
@@ -71,7 +71,8 @@ describe('geminiService', () => {
     expect(result).toEqual(SAFE_FALLBACK_ASSISTANT_RESPONSE);
   });
 
-  it('propagates typed API errors and emits NETWORK_ERROR on fetch TypeError', async () => {
+  it('propagates typed API errors, emits NETWORK_ERROR on TypeError, and rethrows AbortError', async () => {
+    const abortErr = new DOMException('Aborted', 'AbortError');
     vi.stubGlobal(
       'fetch',
       vi
@@ -82,7 +83,8 @@ describe('geminiService', () => {
             { status: 500 },
           ),
         )
-        .mockRejectedValueOnce(new TypeError('Offline')),
+        .mockRejectedValueOnce(new TypeError('Offline'))
+        .mockRejectedValueOnce(abortErr),
     );
 
     await expect(
@@ -97,5 +99,9 @@ describe('geminiService', () => {
     ).rejects.toMatchObject({
       code: ErrorCode.NETWORK_ERROR,
     });
+
+    await expect(getAirQualityRecommendations(DEFAULT_USER_PROFILE, SAMPLE_AQI_DATA)).rejects.toBe(
+      abortErr,
+    );
   });
 });

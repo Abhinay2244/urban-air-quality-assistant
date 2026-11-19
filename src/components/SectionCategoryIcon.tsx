@@ -2,15 +2,20 @@ import type { ReactElement } from 'react';
 import { RecommendationCategory } from '../types/index.ts';
 
 /**
+ * Props for SectionCategoryIcon component.
+ */
+export interface SectionCategoryIconProps {
+  category: RecommendationCategory;
+  className?: string;
+}
+
+/**
  * Renders the inline SVG icon for a recommendation section heading.
  */
 export function SectionCategoryIcon({
   category,
   className = 'h-5 w-5',
-}: {
-  category: RecommendationCategory;
-  className?: string;
-}): ReactElement {
+}: SectionCategoryIconProps): ReactElement {
   if (category === RecommendationCategory.HEALTH_ALERT) {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>

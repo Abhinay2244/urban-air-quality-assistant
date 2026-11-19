@@ -1,4 +1,9 @@
-import { AQICategoryId, RecommendationCategory } from '../types/index.ts';
+/**
+ * @module constants/uiTheme
+ * Responsibility: Store Tailwind styling tokens, AQI gauge geometry, and visual copy constants.
+ * Must not contain business logic, React components, or API/server configuration.
+ */
+import { AqiCategoryId, RecommendationCategory } from '../types/index.ts';
 
 /**
  * UI copy and section headings for the redesigned visual layer.
@@ -24,49 +29,52 @@ export const UI_COPY = {
   DISCLAIMER: 'General guidance, not medical advice.',
   COOLDOWN_BUTTON_PREFIX: 'Wait',
   COOLDOWN_BUTTON_SUFFIX: 's to refresh',
+  COOLDOWN_NOTICE_PREFIX: 'Please wait',
+  COOLDOWN_NOTICE_SINGULAR_UNIT: 'second',
+  COOLDOWN_NOTICE_PLURAL_UNIT: 'seconds',
 } as const;
 
 /**
  * Visual styling tokens for each AQI severity tier in light and dark mode.
  */
 export const AQI_VISUAL_TOKENS: Record<
-  AQICategoryId,
+  AqiCategoryId,
   { strokeHex: string; badgeClass: string; surfaceClass: string }
 > = {
-  [AQICategoryId.GOOD]: {
+  [AqiCategoryId.GOOD]: {
     strokeHex: '#059669',
     badgeClass:
       'bg-emerald-50 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-700',
     surfaceClass:
       'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/70',
   },
-  [AQICategoryId.MODERATE]: {
+  [AqiCategoryId.MODERATE]: {
     strokeHex: '#d97706',
     badgeClass:
       'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-700',
     surfaceClass: 'bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/70',
   },
-  [AQICategoryId.UNHEALTHY_SENSITIVE]: {
+  [AqiCategoryId.UNHEALTHY_SENSITIVE]: {
     strokeHex: '#ea580c',
     badgeClass:
       'bg-orange-50 text-orange-900 border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-700',
     surfaceClass:
       'bg-orange-50/70 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800/70',
   },
-  [AQICategoryId.UNHEALTHY]: {
+  [AqiCategoryId.UNHEALTHY]: {
     strokeHex: '#dc2626',
     badgeClass:
       'bg-red-50 text-red-900 border-red-300 dark:bg-red-950/70 dark:text-red-200 dark:border-red-700',
     surfaceClass: 'bg-red-50/70 border-red-200 dark:bg-red-950/30 dark:border-red-800/70',
   },
-  [AQICategoryId.VERY_UNHEALTHY]: {
+  [AqiCategoryId.VERY_UNHEALTHY]: {
     strokeHex: '#9333ea',
     badgeClass:
       'bg-purple-50 text-purple-900 border-purple-300 dark:bg-purple-950/70 dark:text-purple-200 dark:border-purple-700',
     surfaceClass:
       'bg-purple-50/70 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800/70',
   },
-  [AQICategoryId.HAZARDOUS]: {
+  [AqiCategoryId.HAZARDOUS]: {
     strokeHex: '#be123c',
     badgeClass:
       'bg-rose-900 text-rose-50 border-rose-800 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-700',

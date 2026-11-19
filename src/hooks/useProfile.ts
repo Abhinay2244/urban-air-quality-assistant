@@ -1,3 +1,8 @@
+/**
+ * @module hooks/useProfile
+ * Responsibility: Hold household profile form state and run live per-field validation.
+ * Must not call backend APIs, manage AQI lookups, or render JSX elements.
+ */
 import { useCallback, useState } from 'react';
 import { DEFAULT_USER_PROFILE } from '../constants/config.ts';
 import type { AppError, UserProfile } from '../types/index.ts';

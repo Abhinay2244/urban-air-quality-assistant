@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
-import { APP_TEXT, INPUT_LIMITS } from '../constants/config.ts';
+import { APP_TEXT } from '../constants/config.ts';
+import { INPUT_LIMITS } from '../constants/limits.ts';
 import { clampRounded } from '../utils/math.ts';
 
 /**

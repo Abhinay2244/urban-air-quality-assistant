@@ -32,8 +32,9 @@ describe('ErrorBanner', () => {
     );
 
     const alert = screen.getByRole('alert');
-    expect(alert.textContent).toContain('Unable to reach air quality service.');
-    expect(alert.textContent).toContain('Check local network connectivity.');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Unable to reach air quality service.');
+    expect(alert).toHaveTextContent('Check local network connectivity.');
 
     fireEvent.click(screen.getByRole('button', { name: UI_LABELS.RETRY_LABEL }));
     expect(onRetry).toHaveBeenCalledTimes(1);

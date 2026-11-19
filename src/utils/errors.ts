@@ -1,3 +1,8 @@
+/**
+ * @module utils/errors
+ * Responsibility: Construct, guard, and normalize typed AppError objects without exposing raw internals.
+ * Must not perform logging, HTTP responses, or UI rendering.
+ */
 import { type AppError, ErrorCode } from '../types/index.ts';
 import { isOneOf, isRecord } from './typeGuards.ts';
 

@@ -4,49 +4,19 @@ import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
 import { useAssistant } from '../../hooks/useAssistant.ts';
 import * as aqiService from '../../services/aqiService.ts';
 import * as geminiService from '../../services/geminiService.ts';
-import {
-  AQICategoryId,
-  type AQIData,
-  type AssistantResponse,
-  ErrorCode,
-  RecommendationCategory,
-} from '../../types/index.ts';
+import { ErrorCode } from '../../types/index.ts';
 import { createAppError } from '../../utils/errors.ts';
+import {
+  MOCK_AQI_FIXTURE,
+  MOCK_ASSISTANT_RESPONSE_FIXTURE,
+} from '../fixtures/assistantFixtures.ts';
 
-const MOCK_AQI: AQIData = {
-  city: 'New Delhi',
-  country: 'India',
-  aqi: 210,
-  pm25: 160,
-  pm10: 240,
-  no2: 55,
-  o3: 28,
-  category: AQICategoryId.VERY_UNHEALTHY,
-  updatedAt: '2026-11-18T08:00:00Z',
-  source: 'live',
-};
-
-const MOCK_RESPONSE: AssistantResponse = {
-  summary: 'Stay indoors during inversion.',
-  priorityGuidance: 'Run purifier.',
-  recommendations: [
-    {
-      title: 'Filter Indoor Air',
-      category: RecommendationCategory.INDOOR_AIR,
-      action: 'Use HEPA unit in bedroom.',
-      impactExplanation: 'Lowers inhaled PM2.5.',
-      estimatedPM25Reduction: 50,
-    },
-  ],
-  isFallback: false,
-};
-
-async function setupAndGenerate(): Promise<
+async function setupAndRequest(): Promise<
   ReturnType<typeof renderHook<ReturnType<typeof useAssistant>, unknown>>
 > {
   const hook = renderHook(() => useAssistant());
   await act(async () => {
-    await hook.result.current.generatePlan(DEFAULT_USER_PROFILE);
+    await hook.result.current.requestRecommendations(DEFAULT_USER_PROFILE);
   });
   return hook;
 }
@@ -57,31 +27,36 @@ describe('useAssistant hook', () => {
   });
 
   it('fetches AQI data, applies urgency rules, and starts submit cooldown', async () => {
-    vi.spyOn(aqiService, 'fetchAQIDataByCity').mockResolvedValueOnce(MOCK_AQI);
-    vi.spyOn(geminiService, 'getAirQualityRecommendations').mockResolvedValueOnce(MOCK_RESPONSE);
+    vi.spyOn(aqiService, 'fetchAqiDataByCity').mockResolvedValueOnce(MOCK_AQI_FIXTURE);
+    vi.spyOn(geminiService, 'getAirQualityRecommendations').mockResolvedValueOnce(
+      MOCK_ASSISTANT_RESPONSE_FIXTURE,
+    );
 
-    const { result } = await setupAndGenerate();
+    const { result } = await setupAndRequest();
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
-    expect(result.current.aqiData).toEqual(MOCK_AQI);
+    expect(result.current.aqiData).toEqual(MOCK_AQI_FIXTURE);
     expect(result.current.assistantResponse?.recommendations.length).toBeGreaterThan(0);
     expect(result.current.cooldownSeconds).toBeGreaterThan(0);
+    expect(result.current.cooldownNotice).toBeNull();
   });
 
   it('enables manual AQI fallback when live AQI fetch fails and generates plan manually', async () => {
-    vi.spyOn(aqiService, 'fetchAQIDataByCity').mockRejectedValueOnce(
+    vi.spyOn(aqiService, 'fetchAqiDataByCity').mockRejectedValueOnce(
       createAppError(ErrorCode.AQI_FETCH_ERROR, 'API down'),
     );
-    vi.spyOn(geminiService, 'getAirQualityRecommendations').mockResolvedValueOnce(MOCK_RESPONSE);
+    vi.spyOn(geminiService, 'getAirQualityRecommendations').mockResolvedValueOnce(
+      MOCK_ASSISTANT_RESPONSE_FIXTURE,
+    );
 
-    const { result } = await setupAndGenerate();
+    const { result } = await setupAndRequest();
 
     expect(result.current.isAqiUnavailable).toBe(true);
     expect(result.current.error?.code).toBe(ErrorCode.AQI_FETCH_ERROR);
 
     await act(async () => {
-      await result.current.generatePlanWithManualAqi(DEFAULT_USER_PROFILE, 185);
+      await result.current.requestRecommendationsWithManualAqi(DEFAULT_USER_PROFILE, 185);
     });
 
     expect(result.current.isAqiUnavailable).toBe(false);
@@ -90,15 +65,15 @@ describe('useAssistant hook', () => {
   });
 
   it('keeps manual form visible with AI_SERVICE_ERROR and retries manual mode', async () => {
-    const fetchSpy = vi.spyOn(aqiService, 'fetchAQIDataByCity');
+    const fetchSpy = vi.spyOn(aqiService, 'fetchAqiDataByCity');
     const aiSpy = vi
       .spyOn(geminiService, 'getAirQualityRecommendations')
       .mockRejectedValueOnce(new Error('Upstream AI error'))
-      .mockResolvedValueOnce(MOCK_RESPONSE);
+      .mockResolvedValueOnce(MOCK_ASSISTANT_RESPONSE_FIXTURE);
 
     const { result } = renderHook(() => useAssistant());
     await act(async () => {
-      await result.current.generatePlanWithManualAqi(DEFAULT_USER_PROFILE, 195);
+      await result.current.requestRecommendationsWithManualAqi(DEFAULT_USER_PROFILE, 195);
     });
 
     expect(result.current.isAqiUnavailable).toBe(true);

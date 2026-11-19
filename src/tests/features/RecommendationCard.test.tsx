@@ -31,13 +31,13 @@ describe('RecommendationCard', () => {
     expect(container.querySelectorAll('script')).toHaveLength(0);
     expect(container.querySelectorAll('img')).toHaveLength(0);
 
-    expect(screen.getByText(xssPayload)).toBeTruthy();
+    expect(screen.getByText(xssPayload)).toBeInTheDocument();
     expect(
       screen.getByText('Run HEPA filter <script>alert(1)</script> continuously.'),
-    ).toBeTruthy();
-    expect(screen.getByText('High Priority')).toBeTruthy();
-    expect(screen.getByText(UI_LABELS.IMPACT_EXPLANATION_LABEL)).toBeTruthy();
-    expect(screen.getByText('-45% PM2.5')).toBeTruthy();
-    expect(screen.getByText(imgPayload)).toBeTruthy();
+    ).toBeInTheDocument();
+    expect(screen.getByText('High Priority')).toBeInTheDocument();
+    expect(screen.getByText(UI_LABELS.IMPACT_EXPLANATION_LABEL)).toBeInTheDocument();
+    expect(screen.getByText('-45% PM2.5')).toBeInTheDocument();
+    expect(screen.getByText(imgPayload)).toBeInTheDocument();
   });
 });

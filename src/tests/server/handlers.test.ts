@@ -1,10 +1,9 @@
-import type { AddressInfo } from 'net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../../server/app.ts';
 import { mapGeminiUpstreamError } from '../../../server/errorResponse.ts';
 import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
-import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../../constants/limits.ts';
-import { AQICategoryId } from '../../types/index.ts';
+import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../../constants/http.ts';
+import { AqiCategoryId } from '../../types/index.ts';
 
 describe('server geminiHandler and upstream error mapping', () => {
   const originalKey = process.env.GEMINI_API_KEY;
@@ -19,9 +18,12 @@ describe('server geminiHandler and upstream error mapping', () => {
     const server = app.listen(0);
 
     try {
-      const { port } = server.address() as AddressInfo;
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        throw new Error('Expected TCP server address');
+      }
       const response = await fetch(
-        `http://127.0.0.1:${port}${API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS}`,
+        `http://127.0.0.1:${address.port}${API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -35,7 +37,7 @@ describe('server geminiHandler and upstream error mapping', () => {
               pm10: 180,
               no2: 40,
               o3: 20,
-              category: AQICategoryId.UNHEALTHY,
+              category: AqiCategoryId.UNHEALTHY,
               updatedAt: '2026-11-18T08:00:00Z',
             },
           }),

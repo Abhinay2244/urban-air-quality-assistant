@@ -1,12 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  APP_TEXT,
-  DEFAULT_USER_PROFILE,
-  ERROR_MESSAGES,
-  UI_LABELS,
-} from '../../constants/config.ts';
+import { APP_TEXT, DEFAULT_USER_PROFILE, UI_LABELS } from '../../constants/config.ts';
+import { ERROR_MESSAGES } from '../../constants/http.ts';
 import { ProfileForm } from '../../features/profile/ProfileForm.tsx';
 import { useProfile } from '../../hooks/useProfile.ts';
 import type { UserProfile } from '../../types/index.ts';
@@ -48,7 +44,7 @@ function renderHarness(): {
 } {
   const onSubmitValid = vi.fn();
   render(<ProfileFormHarness onSubmitValid={onSubmitValid} />);
-  const cityInput = screen.getByLabelText(UI_LABELS.CITY_LABEL) as HTMLInputElement;
+  const cityInput = screen.getByLabelText<HTMLInputElement>(UI_LABELS.CITY_LABEL);
   return { onSubmitValid, cityInput };
 }
 
@@ -57,26 +53,26 @@ describe('ProfileForm', () => {
     const { onSubmitValid, cityInput } = renderHarness();
     fireEvent.change(cityInput, { target: { value: 'A' } });
 
-    expect(cityInput.getAttribute('aria-invalid')).toBe('true');
-    const describedBy = cityInput.getAttribute('aria-describedby') ?? '';
-    expect(describedBy).toContain('profile-city-error');
-    expect(describedBy).toContain('profile-city-hint');
+    expect(cityInput).toHaveAttribute('aria-invalid', 'true');
+    expect(cityInput).toHaveAccessibleDescription(
+      `${UI_LABELS.CITY_HINT} ${ERROR_MESSAGES.INVALID_CITY}`,
+    );
 
     const errorAlert = screen.getByRole('alert');
-    expect(errorAlert.id).toBe('profile-city-error');
-    expect(errorAlert.textContent).toBe(ERROR_MESSAGES.INVALID_CITY);
+    expect(errorAlert).toHaveAttribute('id', 'profile-city-error');
+    expect(errorAlert).toHaveTextContent(ERROR_MESSAGES.INVALID_CITY);
 
-    const submitButton = screen.getByRole('button', {
+    const submitButton = screen.getByRole<HTMLButtonElement>('button', {
       name: APP_TEXT.SUBMIT_LABEL,
-    }) as HTMLButtonElement;
-    expect(submitButton.disabled).toBe(true);
+    });
+    expect(submitButton).toBeDisabled();
     expect(onSubmitValid).not.toHaveBeenCalled();
   });
 
   it('calls submit with validated profile when city and selections are valid', () => {
     const { onSubmitValid, cityInput } = renderHarness();
     fireEvent.change(cityInput, { target: { value: '  Lahore  ' } });
-    expect(cityInput.getAttribute('aria-invalid')).toBe('false');
+    expect(cityInput).toHaveAttribute('aria-invalid', 'false');
 
     fireEvent.click(screen.getByRole('button', { name: APP_TEXT.SUBMIT_LABEL }));
     expect(onSubmitValid).toHaveBeenCalledTimes(1);

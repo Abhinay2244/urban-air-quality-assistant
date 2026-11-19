@@ -8,15 +8,15 @@ A GenAI-powered web application that helps urban families and communities naviga
 
 ## Approach & Logic
 
-1. **Profile & Live AQI Resolution**: `useProfile` validates city and household attributes (`familyType`, vulnerability flags, `commuteMode`, `homeType`). On submit, `useAssistant` requests live AQI via `GET /api/aqi` (trying WAQI when `AQI_API_KEY` is configured, falling back to Open-Meteo Geocoding + Air Quality APIs, or prompting `ManualAqiForm` if unavailable).
-2. **Structured Gemini Generation**: `POST /api/assistant/recommendations` validates the profile and `AQIData` payload on the server, builds a contextual prompt via `buildAssistantPrompt`, and invokes `@google/genai` (`gemini-4-hydrogen`) with `responseMimeType: 'application/json'` and `ASSISTANT_RESPONSE_SCHEMA`.
+1. **Profile & Live AQI Resolution**: `useProfile` validates city and household attributes (`familyType`, vulnerability flags, `commuteMode`, `homeType`). On submit, `useAssistant` aborts any prior in-flight request via `AbortController` and requests live AQI via `GET /api/aqi` (trying WAQI when `AQI_API_KEY` is configured, falling back to Open-Meteo Geocoding + Air Quality APIs, or prompting `ManualAqiForm` if unavailable).
+2. **Structured Gemini Generation**: `POST /api/assistant/recommendations` validates the profile and `AqiData` payload on the server, builds a contextual prompt via `buildAssistantPrompt`, and invokes `@google/genai` (`gemini-4-hydrogen`) with `responseMimeType: 'application/json'` and `ASSISTANT_RESPONSE_SCHEMA`.
 3. **Validation & Fallback**: `parseAndValidateAssistantResponse` sanitizes strings (`readStringField`), clamps `estimatedPM25Reduction` to `0–100`, validates categories, and falls back safely to `SAFE_FALLBACK_ASSISTANT_RESPONSE` if model JSON is malformed.
-4. **Deterministic Urgency Layer**: `applyUrgencyRules` scores urgency (`CRITICAL`, `HIGH`, `STANDARD`), guarantees a `Stay Indoors` + N95/KF94 `HEALTH_ALERT` card first under severe AQI or unhealthy AQI with respiratory sensitivity, adds commute/housing rules, and sorts recommendations by severity.
+4. **Deterministic Urgency Layer**: `applyUrgencyRules` scores urgency (`CRITICAL`, `HIGH`, `STANDARD`), guarantees a `Stay Indoors` + N95/KF94 `HEALTH_ALERT` card first under very unhealthy AQI or unhealthy AQI with respiratory sensitivity, adds commute/housing rules, and sorts recommendations by severity.
 
 ```mermaid
 flowchart LR
   A[Household Profile Form] --> B{Live AQI Lookup<br/>/api/aqi}
-  B -->|WAQI / Open-Meteo OK| D[Validated AQIData]
+  B -->|WAQI / Open-Meteo OK| D[Validated AqiData]
   B -->|Unavailable| C[ManualAqiForm Fallback]
   C --> D
   D --> E[Server Gemini Handler<br/>JSON Schema]
@@ -39,20 +39,21 @@ flowchart LR
 
 - `server/` — Express route handlers (`aqiHandler.ts`, `geminiHandler.ts`), provider clients, safe error mapper, and security middleware (`securityMiddleware.ts`).
 - `src/components/` — Reusable presentational UI primitives (`AqiGauge`, `ProgressBar`, `ErrorBanner`, `ThemeToggle`, `SectionCard`, inline SVG icons).
-- `src/constants/` — Centralized AQI thresholds, Gemini prompts/fallback, UI theme tokens, sample profiles, rate limits, and error strings.
-- `src/features/` — Domain feature views split into `profile/`, `impact/`, and `assistant/`.
-- `src/hooks/` — Custom state orchestration hooks (`useProfile`, `useAssistant`) with mode-preserving retry and submit cooldown handling.
-- `src/services/` — Typed browser API clients (`aqiService.ts`, `geminiService.ts`, `httpClient.ts`) using runtime payload type guards.
+- `src/constants/` — Split by concern: numeric limits (`limits.ts`), HTTP/error contract (`http.ts`), server/security config (`server.ts`), AQI tiers (`aqi.ts`), urgency templates (`urgencyTemplates.ts`), Gemini prompts/fallback (`prompts.ts`), UI tokens (`uiTheme.ts`), sample profiles (`samples.ts`), and app copy (`config.ts`).
+- `src/features/` — Domain feature views split into `profile/`, `impact/`, and `assistant/` (`EmptyRecommendationsState`).
+- `src/hooks/` — Custom state orchestration hooks (`useProfile`, `useCooldown`, `useAssistant`) with request cancellation, mode-preserving retry, and visible cooldown notices.
+- `src/services/` — Typed browser API clients (`aqiService.ts`, `geminiService.ts`, `httpClient.ts`) using runtime payload type guards and `AbortSignal` pass-through.
 - `src/types/` — Shared TypeScript interfaces and `as const` enum-like constants compatible with strict TypeScript and Node type-stripping.
-- `src/utils/` — Pure helpers for validation (`isRecord`, `validateCity`), text sanitization, AQI math, formatting, prompt building, JSON parsing, and `applyUrgencyRules`.
-- `src/tests/` — Vitest unit, server handler/security, and React Testing Library component/feature integration tests.
+- `src/utils/` — Pure helpers for validation (`isRecord`, `validateCity`, `validateAqiData`), text sanitization, AQI math, formatting, prompt building, JSON parsing, and `applyUrgencyRules`.
+- `src/tests/` — Vitest unit, server handler/security, and React Testing Library + `@testing-library/jest-dom` component/feature tests.
+- `docs/ARCHITECTURE.md` — Layer boundaries, data flow, `{ code, message }` error contract, and import rules.
 
 ## Security
 
 - **Zero Client Secrets**: `GEMINI_API_KEY` and optional `AQI_API_KEY` are read exclusively on the Express server and never bundled, logged, or returned in API errors.
 - **HTTP Headers & CSP**: `applySecurityHeaders` sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and environment-specific `Content-Security-Policy` headers.
 - **Abuse Controls**: `app.set('trust proxy', 1)` resolves client IPs behind reverse proxies, while `createApiRateLimiter` enforces a bounded per-IP fixed window (`30` requests / `60s` on `/api`, `429` with `Retry-After`) alongside a `16kb` Express JSON body limit.
-- **Input & Output Hardening**: Strict boundary validation (`validateUserProfile`, `validateAQIData`, `validateManualAqi`), control-character stripping (`sanitizeText`), and React plain-text rendering without `dangerouslySetInnerHTML`.
+- **Input & Output Hardening**: Strict boundary validation (`validateUserProfile`, `validateAqiData`, `validateManualAqi`), control-character stripping (`sanitizeText`), and React plain-text rendering without `dangerouslySetInnerHTML`.
 
 ## Accessibility
 
@@ -80,12 +81,26 @@ bun run dev        # or: npm run dev
 
 3. Run checks or build for production:
 
+### Contributing & Scripts
+
+All pull requests should pass linting, formatting, tests, and production compilation before merge:
+
+| Script         | Purpose                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| `lint`         | Runs strict TypeScript type-checking (`tsc --noEmit`) and ESLint with `--max-warnings 0`.           |
+| `format`       | Formats source, config, and documentation files in-place with Prettier.                             |
+| `format:check` | Verifies Prettier formatting without modifying files (used in CI checks).                           |
+| `test`         | Executes the full Vitest unit, server integration, and RTL accessibility test suite (`vitest run`). |
+| `build`        | Bundles the Vite React frontend into `dist/` for production serving.                                |
+| `start`        | Starts Express in `NODE_ENV=production` on port `3000`, serving built assets from `dist/`.          |
+
 ```bash
 bun run lint         # or: npm run lint
+bun run format       # or: npm run format
 bun run format:check # or: npm run format:check
 bun run test         # or: npm run test
 bun run build        # or: npm run build
-bun run start        # or: npm run start (serves dist/ in production on port 3000)
+bun run start        # or: npm run start
 ```
 
 ## Assumptions & Limitations

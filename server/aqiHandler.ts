@@ -1,5 +1,11 @@
+/**
+ * @module server/aqiHandler
+ * Responsibility: Validate live AQI route queries and dispatch primary/fallback AQI provider lookups.
+ * Must not expose API keys in responses or implement low-level provider HTTP parsing.
+ */
 import type { Request, Response } from 'express';
-import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS, INPUT_LIMITS } from '../src/constants/limits.ts';
+import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
+import { INPUT_LIMITS } from '../src/constants/limits.ts';
 import { sanitizeText } from '../src/utils/sanitizing.ts';
 import { fetchFromOpenMeteo, fetchFromWaqi } from './aqiProviders.ts';
 import { isTimeoutError, logServerError, sendErrorResponse } from './errorResponse.ts';

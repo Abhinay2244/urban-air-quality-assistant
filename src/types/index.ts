@@ -1,4 +1,4 @@
-import { ERROR_CODES } from '../constants/limits.ts';
+import { ERROR_CODES } from '../constants/http.ts';
 
 /**
  * Household composition types used to tailor air quality recommendations.
@@ -59,7 +59,7 @@ export type UrgencyLevel = (typeof UrgencyLevel)[keyof typeof UrgencyLevel];
 /**
  * Standard US EPA AQI category identifiers.
  */
-export const AQICategoryId = {
+export const AqiCategoryId = {
   GOOD: 'GOOD',
   MODERATE: 'MODERATE',
   UNHEALTHY_SENSITIVE: 'UNHEALTHY_SENSITIVE',
@@ -67,7 +67,7 @@ export const AQICategoryId = {
   VERY_UNHEALTHY: 'VERY_UNHEALTHY',
   HAZARDOUS: 'HAZARDOUS',
 } as const;
-export type AQICategoryId = (typeof AQICategoryId)[keyof typeof AQICategoryId];
+export type AqiCategoryId = (typeof AqiCategoryId)[keyof typeof AqiCategoryId];
 
 /**
  * Application-wide typed error codes.
@@ -91,7 +91,7 @@ export interface UserProfile {
 /**
  * Current air quality measurements and derived classification for a city.
  */
-export interface AQIData {
+export interface AqiData {
   city: string;
   country: string;
   aqi: number;
@@ -99,7 +99,7 @@ export interface AQIData {
   pm10: number;
   no2: number;
   o3: number;
-  category: AQICategoryId;
+  category: AqiCategoryId;
   updatedAt: string;
   source?: 'live' | 'manual';
 }
@@ -107,8 +107,8 @@ export interface AQIData {
 /**
  * Metadata and health guidance for a single AQI tier.
  */
-export interface AQICategoryInfo {
-  id: AQICategoryId;
+export interface AqiCategoryInfo {
+  id: AqiCategoryId;
   label: string;
   minAqi: number;
   maxAqi: number;

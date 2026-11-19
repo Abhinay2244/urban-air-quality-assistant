@@ -1,8 +1,7 @@
 import http from 'http';
-import type { AddressInfo } from 'net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../server/app.ts';
-import { API_ENDPOINTS, ERROR_CODES, HTTP_STATUS } from '../../constants/limits.ts';
+import { API_ENDPOINTS, ERROR_CODES, HTTP_STATUS } from '../../constants/http.ts';
 
 interface LocalJsonResponse {
   status: number;
@@ -12,10 +11,14 @@ interface LocalJsonResponse {
 async function getLocalApi(path: string): Promise<LocalJsonResponse> {
   const app = await createApp();
   const server = app.listen(0);
-  const { port } = server.address() as AddressInfo;
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    server.close();
+    throw new Error('Expected TCP server address');
+  }
 
   return new Promise<LocalJsonResponse>((resolve, reject) => {
-    const req = http.get(`http://127.0.0.1:${port}${path}`, (res) => {
+    const req = http.get(`http://127.0.0.1:${address.port}${path}`, (res) => {
       let raw = '';
       res.on('data', (chunk: Buffer) => {
         raw += chunk.toString();

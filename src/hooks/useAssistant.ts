@@ -1,32 +1,33 @@
-import { useCallback, useRef, useState } from 'react';
-import { ERROR_MESSAGES } from '../constants/config.ts';
-import { createManualAQIData, fetchAQIDataByCity } from '../services/aqiService.ts';
-import { getAirQualityRecommendations } from '../services/geminiService.ts';
+/**
+ * @module hooks/useAssistant
+ * Responsibility: Orchestrate AQI lookups, AI recommendations, request cancellation, and cooldown notices.
+ * Must not render UI components, manipulate the DOM directly, or bypass service validation.
+ */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { isAbortError } from '../services/httpClient.ts';
+import type { AppError, AqiData, AssistantResponse, UserProfile } from '../types/index.ts';
 import {
-  type AppError,
-  type AQIData,
-  type AssistantResponse,
-  ErrorCode,
-  type UserProfile,
-} from '../types/index.ts';
-import { toAppError } from '../utils/errors.ts';
-import { applyUrgencyRules } from '../utils/urgencyRules.ts';
+  executeAssistantRequest,
+  formatCooldownNotice,
+  type LastAssistantRequest,
+} from './assistantRunner.ts';
 import { useCooldown } from './useCooldown.ts';
-
-type LastRequest =
-  | { mode: 'live'; profile: UserProfile }
-  | { mode: 'manual'; profile: UserProfile; aqi: number; pm25?: number };
 
 /** Return value of the useAssistant custom hook. */
 export interface UseAssistantResult {
-  aqiData: AQIData | null;
+  aqiData: AqiData | null;
   assistantResponse: AssistantResponse | null;
   isLoading: boolean;
   isAqiUnavailable: boolean;
   cooldownSeconds: number;
+  cooldownNotice: string | null;
   error: AppError | null;
-  generatePlan: (profile: UserProfile) => Promise<void>;
-  generatePlanWithManualAqi: (profile: UserProfile, aqi: number, pm25?: number) => Promise<void>;
+  requestRecommendations: (profile: UserProfile) => Promise<void>;
+  requestRecommendationsWithManualAqi: (
+    profile: UserProfile,
+    aqi: number,
+    pm25?: number,
+  ) => Promise<void>;
   enableManualAqi: () => void;
   retryLastRequest: () => Promise<void>;
   clearError: () => void;
@@ -34,16 +35,24 @@ export interface UseAssistantResult {
 
 /**
  * Orchestrates live/manual AQI lookup, GenAI recommendations, rule-based urgency,
- * mode-preserving retry, and submit cooldown rate limiting.
+ * request cancellation, mode-preserving retry, and visible submit cooldown feedback.
  */
 export function useAssistant(): UseAssistantResult {
-  const [aqiData, setAqiData] = useState<AQIData | null>(null);
+  const [aqiData, setAqiData] = useState<AqiData | null>(null);
   const [assistantResponse, setAssistantResponse] = useState<AssistantResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAqiUnavailable, setIsAqiUnavailable] = useState<boolean>(false);
+  const [showCooldownNotice, setShowCooldownNotice] = useState<boolean>(false);
   const [error, setError] = useState<AppError | null>(null);
-  const lastRequestRef = useRef<LastRequest | null>(null);
+  const lastRequestRef = useRef<LastAssistantRequest | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { cooldownSeconds, startCooldown, resetCooldown } = useCooldown();
+
+  useEffect(() => (): void => abortControllerRef.current?.abort(), []);
+  const cooldownNotice =
+    !isLoading && cooldownSeconds > 0 && showCooldownNotice
+      ? formatCooldownNotice(cooldownSeconds)
+      : null;
 
   const clearError = useCallback((): void => setError(null), []);
   const enableManualAqi = useCallback((): void => {
@@ -51,84 +60,69 @@ export function useAssistant(): UseAssistantResult {
     setError(null);
   }, []);
 
-  const generateForResolvedAqi = useCallback(
-    async (profile: UserProfile, resolvedAqi: AQIData, manualMode: boolean): Promise<void> => {
-      setAqiData(resolvedAqi);
-      try {
-        const rawPlan = await getAirQualityRecommendations(profile, resolvedAqi);
-        setIsAqiUnavailable(false);
-        setAssistantResponse(applyUrgencyRules(rawPlan, profile, resolvedAqi));
-      } catch (err: unknown) {
-        if (manualMode) setIsAqiUnavailable(true);
-        setError(toAppError(err, ErrorCode.AI_SERVICE_ERROR, ERROR_MESSAGES.AI_REQUEST_FAILED));
-      }
-    },
-    [],
-  );
-
   const runRequest = useCallback(
-    async (req: LastRequest): Promise<void> => {
+    async (req: LastAssistantRequest): Promise<void> => {
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       lastRequestRef.current = req;
       setIsLoading(true);
+      setShowCooldownNotice(false);
       setError(null);
-      startCooldown();
+      if (req.mode === 'live') setIsAqiUnavailable(false);
+
       try {
-        if (req.mode === 'manual') {
-          try {
-            const manual = createManualAQIData(req.profile.city, req.aqi, req.pm25);
-            await generateForResolvedAqi(req.profile, manual, true);
-          } catch (err: unknown) {
-            setIsAqiUnavailable(true);
-            setError(
-              toAppError(err, ErrorCode.VALIDATION_ERROR, ERROR_MESSAGES.INVALID_MANUAL_AQI),
-            );
+        const result = await executeAssistantRequest(req, controller.signal, (resolved) => {
+          if (!controller.signal.aborted && abortControllerRef.current === controller) {
+            setAqiData(resolved);
           }
+        });
+        if (controller.signal.aborted || abortControllerRef.current !== controller) return;
+        if (result.markAqiUnavailable) setIsAqiUnavailable(true);
+        if (result.error) {
+          setError(result.error);
           return;
         }
-        setIsAqiUnavailable(false);
-        try {
-          const liveAqi = await fetchAQIDataByCity(req.profile.city);
-          await generateForResolvedAqi(req.profile, liveAqi, false);
-        } catch (err: unknown) {
-          const appErr = toAppError(
-            err,
-            ErrorCode.AQI_FETCH_ERROR,
-            ERROR_MESSAGES.AQI_FETCH_FAILED,
-          );
-          if (
-            appErr.code === ErrorCode.AQI_FETCH_ERROR ||
-            appErr.code === ErrorCode.CITY_NOT_FOUND
-          ) {
-            setIsAqiUnavailable(true);
-          }
-          setError(appErr);
+        if (result.response) {
+          setIsAqiUnavailable(false);
+          setAssistantResponse(result.response);
         }
+      } catch (err: unknown) {
+        if (controller.signal.aborted || isAbortError(err)) return;
       } finally {
-        setIsLoading(false);
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+          setIsLoading(false);
+          if (!controller.signal.aborted) startCooldown();
+        }
       }
     },
-    [generateForResolvedAqi, startCooldown],
+    [startCooldown],
   );
 
-  const generatePlan = useCallback(
+  const requestRecommendations = useCallback(
     async (profile: UserProfile): Promise<void> => {
-      if (cooldownSeconds === 0 && !isLoading) await runRequest({ mode: 'live', profile });
+      if (!isLoading && cooldownSeconds > 0) {
+        setShowCooldownNotice(true);
+        return;
+      }
+      await runRequest({ mode: 'live', profile });
     },
     [cooldownSeconds, isLoading, runRequest],
   );
 
-  const generatePlanWithManualAqi = useCallback(
+  const requestRecommendationsWithManualAqi = useCallback(
     async (profile: UserProfile, aqi: number, pm25?: number): Promise<void> => {
-      if (!isLoading) await runRequest({ mode: 'manual', profile, aqi, pm25 });
+      await runRequest({ mode: 'manual', profile, aqi, pm25 });
     },
-    [isLoading, runRequest],
+    [runRequest],
   );
 
   const retryLastRequest = useCallback(async (): Promise<void> => {
-    if (!lastRequestRef.current || isLoading) return;
+    if (!lastRequestRef.current) return;
     resetCooldown();
     await runRequest(lastRequestRef.current);
-  }, [isLoading, resetCooldown, runRequest]);
+  }, [resetCooldown, runRequest]);
 
   return {
     aqiData,
@@ -136,9 +130,10 @@ export function useAssistant(): UseAssistantResult {
     isLoading,
     isAqiUnavailable,
     cooldownSeconds,
+    cooldownNotice,
     error,
-    generatePlan,
-    generatePlanWithManualAqi,
+    requestRecommendations,
+    requestRecommendationsWithManualAqi,
     enableManualAqi,
     retryLastRequest,
     clearError,

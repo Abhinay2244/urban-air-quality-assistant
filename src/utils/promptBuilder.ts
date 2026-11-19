@@ -1,11 +1,16 @@
+/**
+ * @module utils/promptBuilder
+ * Responsibility: Assemble sanitized, deterministic prompt strings from validated profile and AQI data.
+ * Must not invoke the Gemini SDK, access environment secrets, or mutate input objects.
+ */
 import { INPUT_LIMITS } from '../constants/limits.ts';
-import type { AQIData, UserProfile } from '../types/index.ts';
+import type { AqiData, UserProfile } from '../types/index.ts';
 import { sanitizeText } from './sanitizing.ts';
 
 /**
  * Builds the structured user prompt sent to Gemini after sanitizing all user-derived text.
  */
-export function buildAssistantPrompt(profile: UserProfile, aqiData: AQIData): string {
+export function buildAssistantPrompt(profile: UserProfile, aqiData: AqiData): string {
   const safeCity = sanitizeText(aqiData.city, INPUT_LIMITS.MAX_CITY_LENGTH);
   const safeCountry = sanitizeText(aqiData.country, INPUT_LIMITS.MAX_CITY_LENGTH);
 

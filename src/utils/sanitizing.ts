@@ -1,3 +1,8 @@
+/**
+ * @module utils/sanitizing
+ * Responsibility: Strip HTML/script markup and control characters and bound text length safely.
+ * Must not perform validation state updates, DOM manipulation, or network calls.
+ */
 import { INPUT_LIMITS } from '../constants/limits.ts';
 
 const SCRIPT_BLOCK_PATTERN = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;

@@ -3,15 +3,20 @@ import type { ReactElement } from 'react';
 type SensitivityKey = 'hasChildren' | 'hasElderly' | 'hasRespiratoryCondition';
 
 /**
+ * Props for SensitivityIcon component.
+ */
+export interface SensitivityIconProps {
+  field: SensitivityKey;
+  className?: string;
+}
+
+/**
  * Renders an inline SVG icon for household sensitivity toggle chips.
  */
 export function SensitivityIcon({
   field,
   className = 'h-4 w-4',
-}: {
-  field: SensitivityKey;
-  className?: string;
-}): ReactElement {
+}: SensitivityIconProps): ReactElement {
   if (field === 'hasChildren') {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>

@@ -1,4 +1,10 @@
 /**
+ * @module utils/typeGuards
+ * Responsibility: Provide reusable runtime type-narrowing predicates for unknown JSON payloads.
+ * Must not throw errors, mutate objects, or import feature/service modules.
+ */
+
+/**
  * Type guard confirming an unknown value is a non-null plain record object.
  */
 export function isRecord(value: unknown): value is Record<string, unknown> {

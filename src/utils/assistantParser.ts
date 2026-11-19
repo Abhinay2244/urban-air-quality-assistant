@@ -1,4 +1,9 @@
-import { INPUT_LIMITS } from '../constants/config.ts';
+/**
+ * @module utils/assistantParser
+ * Responsibility: Parse, sanitize, and validate raw Gemini JSON strings into typed AssistantResponse data.
+ * Must not call network endpoints, mutate UI state, or throw on malformed model output.
+ */
+import { INPUT_LIMITS } from '../constants/limits.ts';
 import { SAFE_FALLBACK_ASSISTANT_RESPONSE } from '../constants/prompts.ts';
 import {
   type AssistantResponse,

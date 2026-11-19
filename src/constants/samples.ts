@@ -1,3 +1,8 @@
+/**
+ * @module constants/samples
+ * Responsibility: Provide sample household profiles for quick empty-state exploration.
+ * Must not trigger network requests, validate inputs, or store mutable application state.
+ */
 import { CommuteMode, FamilyType, HomeType, type UserProfile } from '../types/index.ts';
 
 /**

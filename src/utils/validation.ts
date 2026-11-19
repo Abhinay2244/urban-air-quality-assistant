@@ -1,8 +1,15 @@
-import { DEFAULT_USER_PROFILE, ERROR_MESSAGES, INPUT_LIMITS } from '../constants/config.ts';
+/**
+ * @module utils/validation
+ * Responsibility: Validate and sanitize user profile, manual AQI/PM2.5 inputs, and AqiData payloads.
+ * Must not call network APIs, access Express req/res objects, or manage React component state.
+ */
+import { DEFAULT_USER_PROFILE } from '../constants/config.ts';
+import { ERROR_MESSAGES } from '../constants/http.ts';
+import { INPUT_LIMITS } from '../constants/limits.ts';
 import {
   type AppError,
-  AQICategoryId,
-  type AQIData,
+  AqiCategoryId,
+  type AqiData,
   CommuteMode,
   ErrorCode,
   FamilyType,
@@ -25,7 +32,7 @@ export interface ValidationResult<T> {
 const FAMILY_VALUES: readonly FamilyType[] = Object.values(FamilyType);
 const COMMUTE_VALUES: readonly CommuteMode[] = Object.values(CommuteMode);
 const HOME_VALUES: readonly HomeType[] = Object.values(HomeType);
-const AQI_CATEGORY_VALUES: readonly AQICategoryId[] = Object.values(AQICategoryId);
+const AQI_CATEGORY_VALUES: readonly AqiCategoryId[] = Object.values(AqiCategoryId);
 
 function fail<T>(value: T, message: string): ValidationResult<T> {
   return { isValid: false, value, error: createAppError(ErrorCode.VALIDATION_ERROR, message) };
@@ -118,9 +125,9 @@ export function validateUserProfile(profile: unknown): ValidationResult<UserProf
 }
 
 /**
- * Type guard verifying an unknown payload represents valid AQIData.
+ * Type guard verifying an unknown payload represents valid AqiData.
  */
-export function validateAQIData(data: unknown): data is AQIData {
+export function validateAqiData(data: unknown): data is AqiData {
   if (!isRecord(data)) return false;
   return (
     typeof data.city === 'string' &&

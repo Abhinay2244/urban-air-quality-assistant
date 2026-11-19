@@ -1,4 +1,10 @@
-import { API_ENDPOINTS, DEFAULT_COUNTRY, SERVER_CONFIG } from '../src/constants/limits.ts';
+/**
+ * @module server/aqiProviders
+ * Responsibility: Fetch and normalize live AQI payloads from WAQI and Open-Meteo upstream APIs.
+ * Must not handle Express Request/Response objects or leak API tokens in logs.
+ */
+import { API_ENDPOINTS } from '../src/constants/http.ts';
+import { DEFAULT_COUNTRY, SERVER_CONFIG } from '../src/constants/server.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { logServerError } from './errorResponse.ts';
 

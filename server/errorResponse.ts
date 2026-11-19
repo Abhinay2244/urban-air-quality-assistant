@@ -1,5 +1,10 @@
+/**
+ * @module server/errorResponse
+ * Responsibility: Send standardized JSON error responses, log diagnostics to stderr, and map Gemini errors.
+ * Must not expose raw stack traces or provider secrets to HTTP clients.
+ */
 import type { Response } from 'express';
-import { ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/limits.ts';
+import { ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
 import type { ErrorCode } from '../src/types/index.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 

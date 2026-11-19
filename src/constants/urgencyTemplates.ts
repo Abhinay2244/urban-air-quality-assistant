@@ -1,9 +1,14 @@
+/**
+ * @module constants/urgencyTemplates
+ * Responsibility: Provide static recommendation templates and labels used by the urgency rule engine.
+ * Must not execute rule logic, evaluate profiles, or depend on UI/service modules.
+ */
 import { RecommendationCategory, UrgencyLevel } from '../types/index.ts';
 
 /**
- * Audience labels and severe-AQI protective alert template.
+ * Audience labels and very-unhealthy-AQI protective alert template.
  */
-export const SEVERE_ALERT_TEMPLATE = {
+export const VERY_UNHEALTHY_ALERT_TEMPLATE = {
   TITLE: 'Stay Indoors and Wear a Fitted N95 Mask for Essential Trips',
   CATEGORY: RecommendationCategory.HEALTH_ALERT,
   IMPACT_EXPLANATION:
@@ -18,9 +23,9 @@ export const SEVERE_ALERT_TEMPLATE = {
 } as const;
 
 /**
- * Priority guidance headline builder constants for severe conditions.
+ * Priority guidance headline builder constants for very unhealthy conditions.
  */
-export const SEVERE_PRIORITY_TEMPLATE = {
+export const VERY_UNHEALTHY_PRIORITY_TEMPLATE = {
   PREFIX: 'Stay indoors, seal living spaces, and use a fitted N95 mask for essential trips (AQI ',
   SUFFIX: ').',
 } as const;

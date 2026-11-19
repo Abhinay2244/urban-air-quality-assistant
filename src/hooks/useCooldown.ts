@@ -1,5 +1,10 @@
+/**
+ * @module hooks/useCooldown
+ * Responsibility: Manage a 1-second interval countdown for submit rate limiting.
+ * Must not execute network requests, store error state, or render UI markup.
+ */
 import { useCallback, useEffect, useState } from 'react';
-import { INPUT_LIMITS } from '../constants/config.ts';
+import { INPUT_LIMITS } from '../constants/limits.ts';
 
 /**
  * Return value of the useCooldown custom hook.

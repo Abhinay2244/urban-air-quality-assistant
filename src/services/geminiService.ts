@@ -1,6 +1,11 @@
-import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants/config.ts';
+/**
+ * @module services/geminiService
+ * Responsibility: Request AI recommendations from the server endpoint and return parsed, validated responses.
+ * Must not embed Gemini API keys, manage UI state, or apply dynamic urgency rules directly.
+ */
+import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants/http.ts';
 import {
-  type AQIData,
+  type AqiData,
   type AssistantResponse,
   ErrorCode,
   type UserProfile,
@@ -8,8 +13,8 @@ import {
 import { parseAndValidateAssistantResponse } from '../utils/assistantParser.ts';
 import { createAppError, toAppError } from '../utils/errors.ts';
 import { isRecord } from '../utils/typeGuards.ts';
-import { unwrapValidation, validateAQIData, validateUserProfile } from '../utils/validation.ts';
-import { fetchJsonOrThrow } from './httpClient.ts';
+import { unwrapValidation, validateAqiData, validateUserProfile } from '../utils/validation.ts';
+import { fetchJsonOrThrow, isAbortError } from './httpClient.ts';
 
 interface ServerAssistantPayload {
   rawText: string;
@@ -25,11 +30,12 @@ function isServerAssistantPayload(raw: unknown): raw is ServerAssistantPayload {
  */
 export async function getAirQualityRecommendations(
   profile: UserProfile,
-  aqiData: AQIData,
+  aqiData: AqiData,
+  signal?: AbortSignal,
 ): Promise<AssistantResponse> {
   const safeProfile = unwrapValidation(validateUserProfile(profile), ERROR_MESSAGES.INVALID_CITY);
 
-  if (!validateAQIData(aqiData)) {
+  if (!validateAqiData(aqiData)) {
     throw createAppError(ErrorCode.VALIDATION_ERROR, ERROR_MESSAGES.INVALID_REQUEST_BODY);
   }
 
@@ -40,6 +46,7 @@ export async function getAirQualityRecommendations(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile: safeProfile, aqiData }),
+        signal,
       },
       ErrorCode.AI_SERVICE_ERROR,
       ERROR_MESSAGES.AI_REQUEST_FAILED,
@@ -48,6 +55,9 @@ export async function getAirQualityRecommendations(
 
     return parseAndValidateAssistantResponse(payload.rawText);
   } catch (error: unknown) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     throw toAppError(error, ErrorCode.AI_SERVICE_ERROR, ERROR_MESSAGES.AI_REQUEST_FAILED);
   }
 }

@@ -1,23 +1,9 @@
 import express from 'express';
-import type { AddressInfo } from 'net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applySecurityHeaders, createApiRateLimiter } from '../../../server/securityMiddleware.ts';
-import { ERROR_CODES, HTTP_STATUS, SECURITY_HEADERS } from '../../constants/limits.ts';
-
-async function withServer(
-  setup: (app: express.Express) => void,
-  run: (baseUrl: string) => Promise<void>,
-): Promise<void> {
-  const app = express();
-  setup(app);
-  const server = app.listen(0);
-  try {
-    const address = server.address() as AddressInfo;
-    await run(`http://127.0.0.1:${address.port}`);
-  } finally {
-    server.close();
-  }
-}
+import { ERROR_CODES, HTTP_STATUS } from '../../constants/http.ts';
+import { SECURITY_HEADERS } from '../../constants/server.ts';
+import { withEphemeralServer } from '../fixtures/serverHarness.ts';
 
 describe('server securityMiddleware', () => {
   afterEach(() => {
@@ -25,10 +11,12 @@ describe('server securityMiddleware', () => {
   });
 
   it('sets baseline security headers and environment-specific CSP', async () => {
-    await withServer(
-      (app) => {
+    await withEphemeralServer(
+      () => {
+        const app = express();
         app.use('/dev', applySecurityHeaders(false), (_req, res) => res.json({ ok: true }));
         app.use('/prod', applySecurityHeaders(true), (_req, res) => res.json({ ok: true }));
+        return app;
       },
       async (baseUrl) => {
         const devRes = await fetch(`${baseUrl}/dev`);
@@ -49,10 +37,12 @@ describe('server securityMiddleware', () => {
     let fakeNow = 1_000_000;
     vi.spyOn(Date, 'now').mockImplementation(() => fakeNow);
 
-    await withServer(
-      (app) => {
+    await withEphemeralServer(
+      () => {
+        const app = express();
         app.set('trust proxy', 1);
         app.use('/api', createApiRateLimiter(2, 1000, 2), (_req, res) => res.json({ ok: true }));
+        return app;
       },
       async (baseUrl) => {
         const res1 = await fetch(`${baseUrl}/api`, { headers: { 'X-Forwarded-For': '10.0.0.1' } });

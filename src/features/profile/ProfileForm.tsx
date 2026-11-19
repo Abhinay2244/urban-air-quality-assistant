@@ -25,6 +25,7 @@ export interface ProfileFormProps {
   fieldErrors: ProfileFieldErrors;
   isLoading: boolean;
   cooldownSeconds: number;
+  cooldownNotice?: string | null;
   onFieldChange: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
   onSubmit: () => void;
 }
@@ -37,6 +38,7 @@ export function ProfileForm({
   fieldErrors,
   isLoading,
   cooldownSeconds,
+  cooldownNotice = null,
   onFieldChange,
   onSubmit,
 }: ProfileFormProps): ReactElement {
@@ -118,13 +120,23 @@ export function ProfileForm({
 
       <button
         type="submit"
-        disabled={isSubmitDisabled}
+        disabled={isLoading || Boolean(cityError)}
         aria-disabled={isSubmitDisabled}
-        className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-2xl bg-teal-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-2xl bg-teal-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
       >
         {isLoading && <SpinnerIcon />}
         <span>{buttonLabel}</span>
       </button>
+
+      {cooldownNotice && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-medium text-amber-950 dark:border-amber-700/80 dark:bg-amber-950/50 dark:text-amber-100"
+        >
+          {cooldownNotice}
+        </p>
+      )}
     </form>
   );
 }

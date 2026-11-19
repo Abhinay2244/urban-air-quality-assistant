@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactElement, useState } from 'react';
-import { APP_TEXT, INPUT_LIMITS, UI_LABELS } from '../../constants/config.ts';
+import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { INPUT_LIMITS } from '../../constants/limits.ts';
 import { validateManualAqi, validateOptionalPm25 } from '../../utils/validation.ts';
 
 /**
@@ -14,6 +15,8 @@ const MANUAL_AQI_ID = 'manual-aqi-input';
 const MANUAL_AQI_ERROR_ID = 'manual-aqi-error';
 const MANUAL_PM25_ID = 'manual-pm25-input';
 const MANUAL_PM25_ERROR_ID = 'manual-pm25-error';
+// Why: Default to 180 (Unhealthy winter smog midpoint) so users hitting an AQI API outage
+// can submit immediately or adjust upward/downward from a realistic smog baseline.
 const DEFAULT_MANUAL_AQI = '180';
 
 /**

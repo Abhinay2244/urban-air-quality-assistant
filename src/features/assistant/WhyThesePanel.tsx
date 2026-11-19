@@ -1,15 +1,15 @@
 import type { ReactElement } from 'react';
 import { PROFILE_OPTIONS, UI_LABELS } from '../../constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
-import type { AQIData, UserProfile } from '../../types/index.ts';
-import { getAQICategoryInfo } from '../../utils/aqiCalculations.ts';
+import type { AqiData, UserProfile } from '../../types/index.ts';
+import { getAqiCategoryInfo } from '../../utils/aqiCalculations.ts';
 
 /**
  * Props for WhyThesePanel component.
  */
 export interface WhyThesePanelProps {
   profile: UserProfile;
-  aqiData: AQIData | null;
+  aqiData: AqiData | null;
 }
 
 function findLabel(
@@ -31,7 +31,7 @@ export function WhyThesePanel({ profile, aqiData }: WhyThesePanelProps): ReactEl
   const chips: ContextChip[] = [{ id: 'city', label: aqiData ? aqiData.city : profile.city }];
 
   if (aqiData) {
-    const category = getAQICategoryInfo(aqiData.category);
+    const category = getAqiCategoryInfo(aqiData.category);
     chips.push({ id: 'aqi', label: `${UI_LABELS.AQI_LABEL} ${aqiData.aqi} (${category.label})` });
   }
 

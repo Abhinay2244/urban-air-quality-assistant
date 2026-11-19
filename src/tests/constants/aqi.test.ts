@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { AQI_CATEGORIES, MAX_STANDARD_AQI, MIN_STANDARD_AQI } from '../../constants/aqi.ts';
-import { AQICategoryId } from '../../types/index.ts';
-import { getAQICategoryByValue } from '../../utils/aqiCalculations.ts';
+import { AqiCategoryId } from '../../types/index.ts';
+import { getAqiCategoryByValue } from '../../utils/aqiCalculations.ts';
 
 describe('AQI constants and category resolution', () => {
   it('defines all six standard EPA categories in ascending order', () => {
     expect(AQI_CATEGORIES).toHaveLength(6);
-    expect(AQI_CATEGORIES[0].id).toBe(AQICategoryId.GOOD);
-    expect(AQI_CATEGORIES[AQI_CATEGORIES.length - 1].id).toBe(AQICategoryId.HAZARDOUS);
+    expect(AQI_CATEGORIES[0].id).toBe(AqiCategoryId.GOOD);
+    expect(AQI_CATEGORIES[AQI_CATEGORIES.length - 1].id).toBe(AqiCategoryId.HAZARDOUS);
   });
 
   it('covers contiguous integer breakpoints from 0 to 500', () => {
@@ -20,11 +20,11 @@ describe('AQI constants and category resolution', () => {
   });
 
   it('resolves boundary AQI values to the correct category', () => {
-    expect(getAQICategoryByValue(25).id).toBe(AQICategoryId.GOOD);
-    expect(getAQICategoryByValue(100).id).toBe(AQICategoryId.MODERATE);
-    expect(getAQICategoryByValue(135).id).toBe(AQICategoryId.UNHEALTHY_SENSITIVE);
-    expect(getAQICategoryByValue(180).id).toBe(AQICategoryId.UNHEALTHY);
-    expect(getAQICategoryByValue(250).id).toBe(AQICategoryId.VERY_UNHEALTHY);
-    expect(getAQICategoryByValue(450).id).toBe(AQICategoryId.HAZARDOUS);
+    expect(getAqiCategoryByValue(25).id).toBe(AqiCategoryId.GOOD);
+    expect(getAqiCategoryByValue(100).id).toBe(AqiCategoryId.MODERATE);
+    expect(getAqiCategoryByValue(135).id).toBe(AqiCategoryId.UNHEALTHY_SENSITIVE);
+    expect(getAqiCategoryByValue(180).id).toBe(AqiCategoryId.UNHEALTHY);
+    expect(getAqiCategoryByValue(250).id).toBe(AqiCategoryId.VERY_UNHEALTHY);
+    expect(getAqiCategoryByValue(450).id).toBe(AqiCategoryId.HAZARDOUS);
   });
 });

@@ -1,15 +1,15 @@
+/**
+ * @module server/app
+ * Responsibility: Wire Express middleware, /api routes, JSON 404/error handlers, and frontend serving.
+ * Must not contain AQI provider parsing, Gemini prompt assembly, or direct process.listen() calls.
+ */
 import 'dotenv/config';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import {
-  API_ENDPOINTS,
-  ERROR_CODES,
-  ERROR_MESSAGES,
-  HTTP_STATUS,
-  SERVER_CONFIG,
-} from '../src/constants/limits.ts';
+import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
+import { SERVER_CONFIG } from '../src/constants/server.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { handleLiveAqiLookup } from './aqiHandler.ts';
 import { sendErrorResponse } from './errorResponse.ts';

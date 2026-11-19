@@ -7,16 +7,18 @@ import { UI_COPY } from '../../constants/uiTheme.ts';
 import type { UserProfile } from '../../types/index.ts';
 
 /**
- * Props for EmptyPlanState component.
+ * Props for EmptyRecommendationsState component.
  */
-export interface EmptyPlanStateProps {
+export interface EmptyRecommendationsStateProps {
   onSelectSample: (sampleProfile: UserProfile) => void;
 }
 
 /**
  * Empty state with calm inline SVG illustration and clickable sample household scenarios.
  */
-export function EmptyPlanState({ onSelectSample }: EmptyPlanStateProps): ReactElement {
+export function EmptyRecommendationsState({
+  onSelectSample,
+}: EmptyRecommendationsStateProps): ReactElement {
   return (
     <SectionCard title={UI_LABELS.ASSISTANT_SECTION_TITLE}>
       <div className="space-y-5 py-2 text-center">
@@ -26,7 +28,7 @@ export function EmptyPlanState({ onSelectSample }: EmptyPlanStateProps): ReactEl
             {UI_COPY.EMPTY_TITLE}
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            {APP_TEXT.EMPTY_PLAN_MESSAGE}
+            {APP_TEXT.EMPTY_RECOMMENDATIONS_MESSAGE}
           </p>
         </div>
 

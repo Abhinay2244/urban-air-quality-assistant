@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
 import {
-  AQICategoryId,
-  type AQIData,
+  AqiCategoryId,
+  type AqiData,
   type AssistantResponse,
   CommuteMode,
   HomeType,
@@ -26,7 +26,7 @@ const BASE_RESPONSE: AssistantResponse = {
   isFallback: false,
 };
 
-const SEVERE_AQI: AQIData = {
+const VERY_UNHEALTHY_AQI: AqiData = {
   city: 'Lahore',
   country: 'Pakistan',
   aqi: 265,
@@ -34,11 +34,11 @@ const SEVERE_AQI: AQIData = {
   pm10: 290,
   no2: 70,
   o3: 30,
-  category: AQICategoryId.VERY_UNHEALTHY,
+  category: AqiCategoryId.VERY_UNHEALTHY,
   updatedAt: '2026-11-18T08:00:00Z',
 };
 
-const GOOD_AQI: AQIData = {
+const GOOD_AQI: AqiData = {
   city: 'Zurich',
   country: 'Switzerland',
   aqi: 35,
@@ -46,12 +46,12 @@ const GOOD_AQI: AQIData = {
   pm10: 15,
   no2: 12,
   o3: 24,
-  category: AQICategoryId.GOOD,
+  category: AqiCategoryId.GOOD,
   updatedAt: '2026-11-18T08:00:00Z',
 };
 
 describe('applyUrgencyRules', () => {
-  it('places stay-indoors and mask alert first for severe AQI with respiratory condition', () => {
+  it('places stay-indoors and mask alert first for very unhealthy AQI with respiratory condition', () => {
     const result = applyUrgencyRules(
       BASE_RESPONSE,
       {
@@ -59,7 +59,7 @@ describe('applyUrgencyRules', () => {
         hasRespiratoryCondition: true,
         commuteMode: CommuteMode.WALK_OR_BIKE,
       },
-      SEVERE_AQI,
+      VERY_UNHEALTHY_AQI,
     );
 
     expect(result.recommendations[0].category).toBe(RecommendationCategory.HEALTH_ALERT);
@@ -76,7 +76,7 @@ describe('applyUrgencyRules', () => {
         ...DEFAULT_USER_PROFILE,
         commuteMode: CommuteMode.WALK_OR_BIKE,
       },
-      SEVERE_AQI,
+      VERY_UNHEALTHY_AQI,
     );
 
     const hasActiveCommuteGuidance = result.recommendations.some((rec) =>

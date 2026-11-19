@@ -18,14 +18,15 @@ describe('ThemeToggle', () => {
 
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     const toLightBtn = screen.getByRole('button', { name: UI_COPY.THEME_TOGGLE_LIGHT });
-    expect(toLightBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(toLightBtn).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(toLightBtn);
 
     expect(document.documentElement.classList.contains('dark')).toBe(false);
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
-    expect(
-      screen.getByRole('button', { name: UI_COPY.THEME_TOGGLE_DARK }).getAttribute('aria-pressed'),
-    ).toBe('false');
+    expect(screen.getByRole('button', { name: UI_COPY.THEME_TOGGLE_DARK })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 });

@@ -5,12 +5,12 @@ import { SectionCategoryIcon } from '../../components/SectionCategoryIcon.tsx';
 import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
 import { SECTION_THEMES } from '../../constants/uiTheme.ts';
 import {
-  type AQIData,
+  type AqiData,
   type AssistantResponse,
   RecommendationCategory,
   type UserProfile,
 } from '../../types/index.ts';
-import { EmptyPlanState } from './EmptyPlanState.tsx';
+import { EmptyRecommendationsState } from './EmptyRecommendationsState.tsx';
 import { RecommendationCard } from './RecommendationCard.tsx';
 import { WhyThesePanel } from './WhyThesePanel.tsx';
 
@@ -20,7 +20,7 @@ import { WhyThesePanel } from './WhyThesePanel.tsx';
 export interface RecommendationListProps {
   response: AssistantResponse | null;
   profile: UserProfile;
-  aqiData: AQIData | null;
+  aqiData: AqiData | null;
   isLoading: boolean;
   onSelectSample: (sampleProfile: UserProfile) => void;
 }
@@ -50,7 +50,7 @@ export function RecommendationList({
   }
 
   if (!response) {
-    return <EmptyPlanState onSelectSample={onSelectSample} />;
+    return <EmptyRecommendationsState onSelectSample={onSelectSample} />;
   }
 
   return (

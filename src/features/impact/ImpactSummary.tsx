@@ -6,8 +6,8 @@ import { SeverityBadge } from '../../components/SeverityBadge.tsx';
 import { WHO_PM25_GUIDELINE_UG_M3 } from '../../constants/aqi.ts';
 import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
 import { AQI_VISUAL_TOKENS, UI_COPY } from '../../constants/uiTheme.ts';
-import type { AQIData, AssistantResponse } from '../../types/index.ts';
-import { calculateTotalPM25Reduction, getAQICategoryInfo } from '../../utils/aqiCalculations.ts';
+import type { AqiData, AssistantResponse } from '../../types/index.ts';
+import { calculateTotalPM25Reduction, getAqiCategoryInfo } from '../../utils/aqiCalculations.ts';
 import { formatPM25Value, formatTimestamp } from '../../utils/formatting.ts';
 import { ManualAqiForm } from './ManualAqiForm.tsx';
 
@@ -15,7 +15,7 @@ import { ManualAqiForm } from './ManualAqiForm.tsx';
  * Props for ImpactSummary feature component.
  */
 export interface ImpactSummaryProps {
-  aqiData: AQIData | null;
+  aqiData: AqiData | null;
   response: AssistantResponse | null;
   isAqiUnavailable: boolean;
   isLoading: boolean;
@@ -38,7 +38,7 @@ export function ImpactSummary({
     return null;
   }
 
-  const categoryInfo = aqiData ? getAQICategoryInfo(aqiData.category) : null;
+  const categoryInfo = aqiData ? getAqiCategoryInfo(aqiData.category) : null;
   const combinedReduction = response ? calculateTotalPM25Reduction(response.recommendations) : 0;
   const surfaceClass = categoryInfo ? AQI_VISUAL_TOKENS[categoryInfo.id].surfaceClass : '';
 

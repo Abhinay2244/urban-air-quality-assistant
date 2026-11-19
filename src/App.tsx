@@ -30,9 +30,10 @@ export default function App(): ReactElement {
     isLoading,
     isAqiUnavailable,
     cooldownSeconds,
+    cooldownNotice,
     error,
-    generatePlan,
-    generatePlanWithManualAqi,
+    requestRecommendations,
+    requestRecommendationsWithManualAqi,
     enableManualAqi,
     retryLastRequest,
     clearError,
@@ -41,21 +42,21 @@ export default function App(): ReactElement {
   const handleSubmit = (): void => {
     const validProfile = validateProfile();
     if (validProfile) {
-      void generatePlan(validProfile);
+      void requestRecommendations(validProfile);
     }
   };
 
   const handleManualAqiSubmit = (aqi: number, pm25?: number): void => {
     const validProfile = validateProfile();
     if (validProfile) {
-      void generatePlanWithManualAqi(validProfile, aqi, pm25);
+      void requestRecommendationsWithManualAqi(validProfile, aqi, pm25);
     }
   };
 
   const handleSelectSample = (sampleProfile: UserProfile): void => {
     const validProfile = replaceProfile(sampleProfile);
     if (validProfile) {
-      void generatePlan(validProfile);
+      void requestRecommendations(validProfile);
     }
   };
 
@@ -104,6 +105,7 @@ export default function App(): ReactElement {
               fieldErrors={fieldErrors}
               isLoading={isLoading}
               cooldownSeconds={cooldownSeconds}
+              cooldownNotice={cooldownNotice}
               onFieldChange={updateField}
               onSubmit={handleSubmit}
             />

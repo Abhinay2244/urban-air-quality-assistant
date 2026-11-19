@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react';
 import { AQI_VISUAL_TOKENS } from '../constants/uiTheme.ts';
-import type { AQICategoryInfo } from '../types/index.ts';
+import type { AqiCategoryInfo } from '../types/index.ts';
 
 /**
  * Props for SeverityBadge component.
  */
 export interface SeverityBadgeProps {
-  category: AQICategoryInfo;
+  category: AqiCategoryInfo;
 }
 
 /**

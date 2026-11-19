@@ -1,6 +1,13 @@
-import { API_ENDPOINTS, APP_TEXT, ERROR_MESSAGES } from '../constants/config.ts';
-import { type AQIData, ErrorCode } from '../types/index.ts';
-import { getAQICategoryByValue } from '../utils/aqiCalculations.ts';
+/**
+ * @module services/aqiService
+ * Responsibility: Fetch live city AQI readings from /api/aqi and construct validated manual AqiData.
+ * Must not manage UI state, render components, or access server API keys directly.
+ */
+import { APP_TEXT } from '../constants/config.ts';
+import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants/http.ts';
+import { DEFAULT_COUNTRY } from '../constants/server.ts';
+import { type AqiData, ErrorCode } from '../types/index.ts';
+import { getAqiCategoryByValue } from '../utils/aqiCalculations.ts';
 import { toAppError } from '../utils/errors.ts';
 import { isRecord } from '../utils/typeGuards.ts';
 import {
@@ -9,7 +16,7 @@ import {
   validateManualAqi,
   validateOptionalPm25,
 } from '../utils/validation.ts';
-import { fetchJsonOrThrow } from './httpClient.ts';
+import { fetchJsonOrThrow, isAbortError } from './httpClient.ts';
 
 interface LiveAqiResponsePayload {
   city?: string;
@@ -22,6 +29,8 @@ interface LiveAqiResponsePayload {
   updatedAt?: string;
 }
 
+// Why: When users enter only US AQI manually, 0.6 approximates fine particulate ug/m3
+// across moderate-to-unhealthy urban smog ranges so WHO guideline comparisons stay populated.
 const PM25_ESTIMATE_MULTIPLIER = 0.6;
 
 function isLiveAqiPayload(raw: unknown): raw is LiveAqiResponsePayload {
@@ -35,14 +44,14 @@ function readOptionalFinite(raw: unknown): number {
 /**
  * Fetches live urban air quality metrics for a given city via the server AQI proxy.
  */
-export async function fetchAQIDataByCity(city: string): Promise<AQIData> {
+export async function fetchAqiDataByCity(city: string, signal?: AbortSignal): Promise<AqiData> {
   const safeCity = unwrapValidation(validateCity(city), ERROR_MESSAGES.INVALID_CITY);
 
   try {
     const url = `${API_ENDPOINTS.AQI_LIVE}?city=${encodeURIComponent(safeCity)}`;
     const payload = await fetchJsonOrThrow(
       url,
-      undefined,
+      { signal },
       ErrorCode.AQI_FETCH_ERROR,
       ERROR_MESSAGES.AQI_FETCH_FAILED,
       isLiveAqiPayload,
@@ -51,26 +60,29 @@ export async function fetchAQIDataByCity(city: string): Promise<AQIData> {
     const aqi = Math.round(payload.aqi);
     return {
       city: typeof payload.city === 'string' ? payload.city : safeCity,
-      country: typeof payload.country === 'string' ? payload.country : APP_TEXT.DEFAULT_COUNTRY,
+      country: typeof payload.country === 'string' ? payload.country : DEFAULT_COUNTRY,
       aqi,
       pm25: readOptionalFinite(payload.pm25),
       pm10: readOptionalFinite(payload.pm10),
       no2: readOptionalFinite(payload.no2),
       o3: readOptionalFinite(payload.o3),
-      category: getAQICategoryByValue(aqi).id,
+      category: getAqiCategoryByValue(aqi).id,
       updatedAt:
         typeof payload.updatedAt === 'string' ? payload.updatedAt : new Date().toISOString(),
       source: 'live',
     };
   } catch (error: unknown) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     throw toAppError(error, ErrorCode.AQI_FETCH_ERROR, ERROR_MESSAGES.AQI_FETCH_FAILED);
   }
 }
 
 /**
- * Creates a validated AQIData object from user-entered manual AQI and optional PM2.5 values.
+ * Creates a validated AqiData object from user-entered manual AQI and optional PM2.5 values.
  */
-export function createManualAQIData(city: string, aqiInput: number, pm25Input?: number): AQIData {
+export function createManualAqiData(city: string, aqiInput: number, pm25Input?: number): AqiData {
   const safeCity = unwrapValidation(validateCity(city), ERROR_MESSAGES.INVALID_CITY);
   const aqi = unwrapValidation(validateManualAqi(aqiInput), ERROR_MESSAGES.INVALID_MANUAL_AQI);
   const validatedPm25 = unwrapValidation(
@@ -87,7 +99,7 @@ export function createManualAQIData(city: string, aqiInput: number, pm25Input?: 
     pm10: 0,
     no2: 0,
     o3: 0,
-    category: getAQICategoryByValue(aqi).id,
+    category: getAqiCategoryByValue(aqi).id,
     updatedAt: new Date().toISOString(),
     source: 'manual',
   };
