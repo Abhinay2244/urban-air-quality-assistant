@@ -1,110 +1,88 @@
 # Urban Air Quality Assistant
 
-A GenAI-powered web application that helps urban families and communities navigate winter smog and high-particulate pollution with practical, low-emission daily routines, indoor air hacks, sustainable alternatives, and household-specific health alerts.
+A GenAI-powered web application that helps urban households across India navigate winter smog and particulate pollution with practical, low-emission daily routines, indoor air hacks, sustainable alternatives, and household-specific health alerts.
 
 ## Chosen Vertical
 
-**Challenge 6 — Urban Air Quality Assistant**: Designed for households living in smog-prone metro areas (such as New Delhi, Lahore, and Beijing), including families with young children, older adults, people with respiratory sensitivities, and active outdoor commuters who need actionable guidance tailored to live local AQI levels.
+**Challenge 6 — Urban Air Quality Assistant**: Built for households and individuals in smog-prone Indian cities (including Delhi, Noida, Mumbai, Kolkata, Lucknow, and Hyderabad), covering parents with children, seniors, working professionals, student athletes, people with respiratory sensitivities, and active commuters.
 
 ## Approach & Logic
 
-1. **Profile & Live AQI Resolution**: `useProfile` validates city and household attributes (`familyType`, vulnerability flags, `commuteMode`, `homeType`). On submit, `useAssistant` aborts any prior in-flight request via `AbortController` and requests live AQI via `GET /api/aqi` (trying WAQI when `AQI_API_KEY` is configured, falling back to Open-Meteo Geocoding + Air Quality APIs, or prompting `ManualAqiForm` if unavailable).
-2. **Structured Gemini Generation**: `POST /api/assistant/recommendations` validates the profile and `AqiData` payload on the server, builds a contextual prompt via `buildAssistantPrompt`, and invokes `@google/genai` (`gemini-4-hydrogen`) with `responseMimeType: 'application/json'` and `ASSISTANT_RESPONSE_SCHEMA`.
-3. **Validation & Fallback**: `parseAndValidateAssistantResponse` sanitizes strings (`readStringField`), clamps `estimatedPM25Reduction` to `0–100`, validates categories, and falls back safely to `SAFE_FALLBACK_ASSISTANT_RESPONSE` if model JSON is malformed.
-4. **Deterministic Urgency Layer**: `applyUrgencyRules` scores urgency (`CRITICAL`, `HIGH`, `STANDARD`), guarantees a `Stay Indoors` + N95/KF94 `HEALTH_ALERT` card first under very unhealthy AQI or unhealthy AQI with respiratory sensitivity, adds commute/housing rules, and sorts recommendations by severity.
+1. **Location & Profile Resolution**: `useProfile` validates household attributes (`familyType` including `Working professional` and `Student`, sensitivity flags, `commuteMode`, `homeType`). `LocationCard` offers **India-only city search** (`GET /api/cities?q=...` powered by Open-Meteo Geocoding with `countryCode=IN`) plus a **"Use my location"** Geolocation API flow with explicit permission status and graceful fallback.
+2. **Live AQI Proxy & Integrity**: `GET /api/aqi` accepts either a city name or `lat`/`lon` coordinates, tries **WAQI** (`geo:lat;lon` or city feed) when `AQI_API_KEY` is configured while enriching with Open-Meteo 24-hour hourly PM2.5, or falls back directly to **Open-Meteo Air Quality** (`us_aqi`, `pm2_5`, `pm10`, `nitrogen_dioxide`, `ozone`, `hourly=pm2_5`). Raw live AQI readings above `500` are preserved without rejection, classified as **Hazardous**, and tagged `"above scale"`. Stations outside India or >50 km from the requested city/coordinates trigger a visible warning banner. If live lookup fails, `ManualAqiForm` accepts AQI (`0–500`) and optional PM2.5/PM10 and labels outputs `"Manual entry"`.
+3. **Structured Gemini Generation**: `POST /api/assistant/recommendations` validates profile and `AqiData` payloads on the server, builds a deterministic prompt (`buildAssistantPrompt`) including Morning/Afternoon/Evening slots from **Today's plan** and explicitly instructs Gemini (`gemini-4-hydrogen`) that AQI, PM2.5, and PM10 are authoritative provided values that must never be invented or altered.
+4. **Deterministic US EPA Urgency Layer**: `applyUrgencyRules` evaluates readings on the **AQI (US scale, as reported by WAQI and Open-Meteo)**: stay-indoors + fitted N95/KF94 `HEALTH_ALERT` priority starts at **101** (`Unhealthy for Sensitive Groups`) for households with children, older adults, or respiratory sensitivities, and at **151** (`Unhealthy`) for all households.
 
 ```mermaid
 flowchart LR
-  A[Household Profile Form] --> B{Live AQI Lookup<br/>/api/aqi}
-  B -->|WAQI / Open-Meteo OK| D[Validated AqiData]
-  B -->|Unavailable| C[ManualAqiForm Fallback]
+  A[Profile + India City Search / Geolocation] --> B{Live AQI Lookup<br/>/api/aqi}
+  B -->|WAQI / Open-Meteo OK| D[Validated US-Scale AqiData + Station + 24h PM2.5]
+  B -->|Unavailable| C[ManualAqiForm Fallback<br/>Manual entry]
   C --> D
   D --> E[Server Gemini Handler<br/>JSON Schema]
   E -->|Raw JSON| F[parseAndValidateAssistantResponse]
   E -->|Invalid / Unparseable| G[SAFE_FALLBACK_ASSISTANT_RESPONSE]
   F --> H[applyUrgencyRules]
   G --> H
-  H --> I[ImpactSummary + 4-Section Action Plan]
+  H --> I[ImpactSummary + Today's Plan + 4-Section Plan]
 ```
 
 ## Features
 
-- **Household Profile Form**: City input with live inline validation, family structure selector, toggle chips for children/elderly/respiratory sensitivities, commute mode, and home type.
-- **Live & Manual AQI Hero Gauge**: Circular category-colored US AQI gauge, WHO 24h PM2.5 guideline comparison (`15 ug/m3`), live/manual badge, and instant manual AQI + optional PM2.5 fallback.
-- **Four-Section Tailored Plan**: Categorized cards for Health Alerts, Daily Routine (Low-Emission), Indoor Air Hacks, and Sustainable Alternatives.
-- **Direct PM2.5 Impact**: Every recommendation card highlights a plain-text `"Direct impact"` rationale and per-action PM2.5 reduction %, rolled up by `calculateTotalPM25Reduction` into an overall exposure reduction bar.
-- **Responsive Light/Dark Theme**: Calm health-tech UI with `prefers-color-scheme` support, loading skeletons, sample scenario chips, cooldown guard, and retry/dismiss error banners.
+- **US EPA AQI Gauge & Data Transparency**: Circular gauge colored by **AQI (US scale, as reported by WAQI and Open-Meteo)** (`Good` 0–50, `Moderate` 51–100, `Unhealthy for Sensitive Groups` 101–150, `Unhealthy` 151–200, `Very Unhealthy` 201–300, `Hazardous` 301–500, plus `>500` live readings treated as Hazardous with an `"above scale"` note). Always shows the station or place name, timestamp, source (`Live WAQI`, `Live Open-Meteo`, or `Manual entry`), and any non-India / distance warning.
+- **PM2.5 & PM10 vs. WHO 24h Guidelines**: Displays PM2.5 alongside `15.0 ug/m3` WHO 24h guideline and optional PM10 alongside `45.0 ug/m3` WHO 24h guideline, including manual optional PM2.5 and PM10 fields.
+- **Today's Plan & Best Outdoor Window**: When hourly PM2.5 data is present, renders **Today's plan** (**Morning** 6 AM–12 PM, **Afternoon** 12 PM–5 PM, **Evening** 5 PM–10 PM) with expected PM2.5 and tailored action alongside the **Best time for outdoor activity** 2-hour window, and passes the slots to Gemini.
+- **Location Controls**: `"Use my location"` (Geolocation API with clear permission messaging and fallback) and India-only city search (`countryCode=IN`), keeping Delhi, Noida, Mumbai, Kolkata, and smaller Indian towns reliable.
+- **Personas & Indian-Home Guidance**: Covers parents/children, seniors, working professionals, and **Student** outdoor sports/activity planning, plus wet mopping, clean-window ventilation timing, room-sized HEPA CADR, minor houseplant caveat, and low-cost DIY options. See `docs/SAMPLE_INPUTS.md` for walkthrough profiles.
 
 ## Architecture & Folder Structure
 
-- `server/` — Express route handlers (`aqiHandler.ts`, `geminiHandler.ts`), provider clients, safe error mapper, and security middleware (`securityMiddleware.ts`).
-- `src/components/` — Reusable presentational UI primitives (`AqiGauge`, `ProgressBar`, `ErrorBanner`, `ThemeToggle`, `SectionCard`, inline SVG icons).
-- `src/constants/` — Split by concern: numeric limits (`limits.ts`), HTTP/error contract (`http.ts`), server/security config (`server.ts`), AQI tiers (`aqi.ts`), urgency templates (`urgencyTemplates.ts`), Gemini prompts/fallback (`prompts.ts`), UI tokens (`uiTheme.ts`), sample profiles (`samples.ts`), and app copy (`config.ts`).
-- `src/features/` — Domain feature views split into `profile/`, `impact/`, and `assistant/` (`EmptyRecommendationsState`).
-- `src/hooks/` — Custom state orchestration hooks (`useProfile`, `useCooldown`, `useAssistant`) with request cancellation, mode-preserving retry, and visible cooldown notices.
-- `src/services/` — Typed browser API clients (`aqiService.ts`, `geminiService.ts`, `httpClient.ts`) using runtime payload type guards and `AbortSignal` pass-through.
-- `src/types/` — Shared TypeScript interfaces and `as const` enum-like constants compatible with strict TypeScript and Node type-stripping.
-- `src/utils/` — Pure helpers for validation (`isRecord`, `validateCity`, `validateAqiData`), text sanitization, AQI math, formatting, prompt building, JSON parsing, and `applyUrgencyRules`.
-- `src/tests/` — Vitest unit, server handler/security, and React Testing Library + `@testing-library/jest-dom` component/feature tests.
-- `docs/ARCHITECTURE.md` — Layer boundaries, data flow, `{ code, message }` error contract, and import rules.
+- `server/` — Express route handlers (`aqiHandler.ts`, `citiesHandler.ts`, `geminiHandler.ts`), provider clients (`aqiProviders.ts`, `hourlyForecastProvider.ts`), error mapper, and security middleware (`securityMiddleware.ts`).
+- `src/components/` — Presentational UI primitives (`AqiGauge`, `ProgressBar`, `ErrorBanner`, `ThemeToggle`, `SectionCard`, inline SVG icons).
+- `src/constants/` — Split by concern: numeric bounds (`limits.ts`), HTTP/error contract (`http.ts`), server/port config (`server.ts`), US EPA AQI tiers/WHO guidelines/India bounds (`aqi.ts`), daily plan slots (`dailyPlan.ts`), urgency templates (`urgencyTemplates.ts`), Gemini prompts (`prompts.ts`), UI tokens (`uiTheme.ts`), sample profiles (`samples.ts`), and app labels (`config.ts`).
+- `src/features/` — `profile/` (`ProfileForm`, `LocationCard`, `useCityAutocomplete`), `impact/` (`ImpactSummary`, `ManualAqiForm`, `ManualMetricField`, `OutdoorWindowCard`, `TodaysPlanCard`), and `assistant/` (`EmptyRecommendationsState`, `WhyThesePanel`).
+- `src/hooks/` — State orchestration (`useProfile`, `useCooldown`, `useAssistant`) with `AbortController` request cancellation and mode-preserving retry.
+- `src/services/` — Typed browser API clients (`aqiService.ts`, `citySearchService.ts`, `geminiService.ts`, `httpClient.ts`).
+- `src/utils/` — Pure helpers (`aqiCalculations.ts`, `dailyPlan.ts`, `outdoorWindow.ts`, `locationValidation.ts`, `urgencyRules.ts`, `validation.ts`, `promptBuilder.ts`, `assistantParser.ts`, `formatting.ts`, `sanitizing.ts`, `typeGuards.ts`).
+- `docs/` — `ARCHITECTURE.md` and `SAMPLE_INPUTS.md`.
 
 ## Security
 
-- **Zero Client Secrets**: `GEMINI_API_KEY` and optional `AQI_API_KEY` are read exclusively on the Express server and never bundled, logged, or returned in API errors.
-- **HTTP Headers & CSP**: `applySecurityHeaders` sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and environment-specific `Content-Security-Policy` headers.
-- **Abuse Controls**: `app.set('trust proxy', 1)` resolves client IPs behind reverse proxies, while `createApiRateLimiter` enforces a bounded per-IP fixed window (`30` requests / `60s` on `/api`, `429` with `Retry-After`) alongside a `16kb` Express JSON body limit.
-- **Input & Output Hardening**: Strict boundary validation (`validateUserProfile`, `validateAqiData`, `validateManualAqi`), control-character stripping (`sanitizeText`), and React plain-text rendering without `dangerouslySetInnerHTML`.
-
-## Accessibility
-
-- Visible `<label>` elements, `aria-invalid`, `role="alert"`, and `aria-describedby` linking inputs to hints and inline validation messages.
-- Native `<progress>` bar paired with a visible percentage text readout, keyboard-focusable controls (`min-h-11` targets), and `aria-live="polite"` / `aria-busy` updates on the results column.
-- WCAG AA contrast color tokens across both light and dark themes.
+- **Zero Client Secrets**: `GEMINI_API_KEY` and optional `AQI_API_KEY` remain exclusively in server `process.env` and are never bundled, logged, or returned in responses.
+- **HTTP Headers & Rate Limiting**: `applySecurityHeaders` configures `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and CSP headers (`connect-src 'self'`). `trust proxy = 1` and bounded per-IP rate limiting protect `/api/*` alongside a `16kb` JSON body cap.
+- **Boundary Validation**: Coordinates (`[-90, 90]`, `[-180, 180]`), city text sanitization (`sanitizeText`), runtime type guards, manual AQI bounds (`0–500`), and plain-text React rendering prevent injection and malformed payloads.
 
 ## Testing
 
-The `src/tests/` suite uses **Vitest** and **React Testing Library** (`jsdom`) covering AQI calculations, validation guards, urgency rules, response parsing, hooks, service error handling, Express validation/security middleware, and accessible UI behavior (`ProfileForm`, `RecommendationCard`, `ErrorBanner`, `ManualAqiForm`, `ProgressBar`, and `App` end-to-end flow).
+The `src/tests/` suite runs on **Vitest** and **React Testing Library** (`jsdom`), covering US EPA AQI breakpoints, `>500` live AQI handling, `urgencyRules` boundaries (`100`, `101`, `150`, `151`), `buildDailyPlanSlots`, `findBestOutdoorWindow`, `locationValidation`, server handlers (`/api/aqi`, `/api/cities`, `/api/assistant/recommendations`), request cancellation, and accessible UI/integration flows.
 
-## Setup
+## Setup & Deployment
 
-**Prerequisites**: [Bun](https://bun.sh/) (matches `bun.lock`) or Node.js `>= 22` + `npm`.
+**Prerequisites**: [Bun](https://bun.sh/) (matches `bun.lock`) or Node.js `>= 22.6.0` + `npm`.
 
-1. Copy `.env.example` to `.env` and set your keys:
+1. Copy `.env.example` to `.env` and configure:
    - `GEMINI_API_KEY` (required for AI recommendations)
-   - `AQI_API_KEY` (optional WAQI token; falls back to Open-Meteo if omitted)
-2. Install dependencies and start the development server on port `3000`:
+   - `AQI_API_KEY` (optional WAQI token; falls back to Open-Meteo when unset)
+   - `PORT` (optional HTTP port; defaults to `3000`; server binds on `0.0.0.0`)
+2. Run locally or verify:
 
 ```bash
 bun install        # or: npm install
 bun run dev        # or: npm run dev
 ```
 
-3. Run checks or build for production:
+## Scripts
 
-### Contributing & Scripts
+- `npm run lint` (`bun run lint`) — Runs `tsc --noEmit` and `eslint . --max-warnings 0`.
+- `npm run format` (`bun run format`) — Formats all repository files with Prettier (`prettier --write .`).
+- `npm run format:check` (`bun run format:check`) — Verifies formatting without modifying files (`prettier --check .`).
+- `npm run test` (`bun run test`) — Runs the Vitest unit and integration test suite (`vitest run`).
+- `npm run build` (`bun run build`) — Compiles the production Vite client bundle (`vite build`).
+- `npm run start` (`bun run start`) — Starts the Express production server (`NODE_ENV=production node server.ts`).
 
-All pull requests should pass linting, formatting, tests, and production compilation before merge:
+## Data Sources, Assumptions & Limitations
 
-| Script         | Purpose                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------- |
-| `lint`         | Runs strict TypeScript type-checking (`tsc --noEmit`) and ESLint with `--max-warnings 0`.           |
-| `format`       | Formats source, config, and documentation files in-place with Prettier.                             |
-| `format:check` | Verifies Prettier formatting without modifying files (used in CI checks).                           |
-| `test`         | Executes the full Vitest unit, server integration, and RTL accessibility test suite (`vitest run`). |
-| `build`        | Bundles the Vite React frontend into `dist/` for production serving.                                |
-| `start`        | Starts Express in `NODE_ENV=production` on port `3000`, serving built assets from `dist/`.          |
-
-```bash
-bun run lint         # or: npm run lint
-bun run format       # or: npm run format
-bun run format:check # or: npm run format:check
-bun run test         # or: npm run test
-bun run build        # or: npm run build
-bun run start        # or: npm run start
-```
-
-## Assumptions & Limitations
-
-- PM2.5 exposure reduction percentages are heuristic estimates for educational planning rather than clinical or sensor-calibrated measurements.
-- Open-Meteo and WAQI availability varies by city; manual AQI entry ensures resilience when external APIs fail or rate-limit.
-- The per-IP rate limiter stores counters in process memory (pruned when exceeding `MAX_TRACKED_IPS`) and assumes `trust proxy = 1` behind a single reverse-proxy hop; counters reset on server restart and are not shared across multiple instances.
+- **Scale**: Both **Open-Meteo Air Quality** (`us_aqi`) and **WAQI** (`aqi` feeds) report AQI on the **US scale (`0–500`)**; raw values above `500` from monitoring stations are accepted, classified as Hazardous, and flagged `"above scale"`.
+- **Data Sources**: Live air metrics use **WAQI** (`api.waqi.info`) when `AQI_API_KEY` is configured or **Open-Meteo** (`open-meteo.com`) as keyless fallback; Indian city search queries Open-Meteo Geocoding with `countryCode=IN`; 24h hourly PM2.5 forecasts come from Open-Meteo (`hourly=pm2_5`); WHO 24-hour guidelines cite the 2021 WHO Global Air Quality Guidelines (`15 ug/m3` PM2.5, `45 ug/m3` PM10).
+- **Conditional Hourly Sections**: If Open-Meteo hourly PM2.5 data is unavailable or the user submits via manual entry, both **Today's plan** and **Best time for outdoor activity** are hidden.
+- **Educational Estimates**: Combined PM2.5 reduction percentages are heuristic estimates rather than clinical measurements.

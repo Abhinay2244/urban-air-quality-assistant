@@ -10,6 +10,7 @@
 export const API_ENDPOINTS = {
   ASSISTANT_RECOMMENDATIONS: '/api/assistant/recommendations',
   AQI_LIVE: '/api/aqi',
+  CITIES_SEARCH: '/api/cities',
   API_PREFIX: '/api',
   WAQI_FEED: 'https://api.waqi.info/feed',
   GEOCODING: 'https://geocoding-api.open-meteo.com/v1/search',
@@ -51,8 +52,11 @@ export const ERROR_CODES = {
  */
 export const ERROR_MESSAGES = {
   INVALID_CITY: 'Enter a valid city name (2 to 80 characters, letters and spaces).',
-  INVALID_MANUAL_AQI: 'Enter a numeric US AQI between 0 and 500.',
+  INVALID_COORDINATES:
+    'Provide valid latitude (-90 to 90) and longitude (-180 to 180) coordinates.',
+  INVALID_MANUAL_AQI: 'Enter a numeric AQI between 0 and 500.',
   INVALID_MANUAL_PM25: 'Enter an optional PM2.5 reading between 0 and 1000 ug/m3.',
+  INVALID_MANUAL_PM10: 'Enter an optional PM10 reading between 0 and 2000 ug/m3.',
   CITY_NOT_FOUND: 'Could not find air quality monitoring coordinates for that city.',
   AQI_FETCH_FAILED:
     'Live air quality lookup failed. Enter the current AQI manually below to continue.',

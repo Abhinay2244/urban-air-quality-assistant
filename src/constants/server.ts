@@ -14,6 +14,7 @@ export const DEFAULT_COUNTRY = 'Unknown';
  */
 export const SERVER_CONFIG = {
   PORT: 3000,
+  MAX_PORT: 65535,
   HOST: '0.0.0.0',
   PROVIDER_TIMEOUT_MS: 8000,
   JSON_BODY_LIMIT: '16kb',

@@ -36,8 +36,9 @@ describe('math and AQI calculation utilities', () => {
     expect(calculateTotalPM25Reduction([])).toBe(0);
   });
 
-  it('resolves AQI category info by id and value', () => {
+  it('resolves US EPA category info including raw AQI readings above 500', () => {
     expect(getAqiCategoryByValue(215).id).toBe(AqiCategoryId.VERY_UNHEALTHY);
+    expect(getAqiCategoryByValue(620).id).toBe(AqiCategoryId.HAZARDOUS);
     expect(getAqiCategoryInfo(AqiCategoryId.GOOD).label).toBe('Good');
   });
 });

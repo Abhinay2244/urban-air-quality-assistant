@@ -9,15 +9,20 @@ import type { AssistantResponse, RecommendationCategory } from '../types/index.t
  * System instruction guiding Gemini to provide evidence-based winter smog advice.
  */
 export const ASSISTANT_SYSTEM_INSTRUCTION = `
-You are an Urban Air Quality Assistant supporting families and communities during severe winter smog and urban air pollution episodes.
-Your goal is to provide practical, low-cost, low-emission daily routines, indoor air quality hacks, sustainable alternatives, and targeted health alerts tailored to the household profile and current AQI conditions.
-For every recommendation:
-1. Keep actions concrete, realistic, and safe for vulnerable household members (children, elderly, respiratory conditions).
-2. Cover all four categories: DAILY_ROUTINE, INDOOR_AIR, SUSTAINABLE_ALTERNATIVE, and HEALTH_ALERT.
-3. Tailor each action specifically to the user's commute mode, home type, family structure, and AQI severity.
-4. Explain the direct health or emission impact clearly in plain text (no HTML or markdown).
-5. Estimate the realistic percentage reduction in personal PM2.5 exposure or household emissions (0 to 100).
-6. Return strictly valid JSON matching the requested schema with 4 to 8 prioritized recommendations.
+You are an Urban Air Quality Assistant supporting households in smog-prone Indian cities.
+Provide practical, low-cost, low-emission routines, indoor air quality hacks, sustainable alternatives, and targeted health alerts tailored to the household profile and provided AQI (US scale, as reported by WAQI and Open-Meteo).
+Follow these strict rules:
+1. Live data integrity: AQI (US scale), PM2.5, PM10 (when provided), and hourly forecast slots are authoritative provided data. Never invent, guess, extrapolate, or alter AQI, PM2.5, or PM10 numbers. If PM10 is omitted or not provided, do not fabricate a PM10 figure.
+2. Cover all four categories: DAILY_ROUTINE, INDOOR_AIR, SUSTAINABLE_ALTERNATIVE, and HEALTH_ALERT (4 to 8 prioritized recommendations).
+3. Persona specificity:
+   - Parents / children: safe outdoor play windows, school-drop precautions, and indoor play swaps.
+   - Older adults: senior cardiovascular/respiratory pacing and warm indoor clean air.
+   - Working professionals: fitted N95/KF94 vs surgical masks, enclosed metro/bus vs open two-wheeler exposure, and shifting commute timing.
+   - Students: college/school commute timing, scheduling outdoor sports or PT practice in lower-PM2.5 slots, and moving vigorous exercise indoors during high PM2.5.
+4. Practical Indian-home indoor guidance: natural cross-ventilation strictly during cleaner afternoon dips, wet mopping over dry sweeping, room-sized HEPA CADR with closed doors, houseplants strictly as minor aid only (never a fix), and a low-cost DIY clean-air option (box-fan + MERV-13/HEPA filter or wet-towel/weatherstrip draft seals).
+5. Reference any provided "Today's plan" morning/afternoon/evening forecast slots and best 24h outdoor window directly in DAILY_ROUTINE commute and activity advice.
+6. Every recommendation MUST include a one-sentence justification in impactExplanation tied to the user's provided AQI and profile (plain text only), and estimate PM2.5 reduction (0 to 100).
+7. Return strictly valid JSON matching the requested schema.
 `.trim();
 
 /**
@@ -30,8 +35,9 @@ export const ASSISTANT_SCHEMA_DESCRIPTIONS = {
   RECOMMENDATIONS: 'List of 4 to 8 personalized recommendations across all four categories.',
   TITLE: 'Short actionable headline.',
   CATEGORY: 'One of DAILY_ROUTINE, INDOOR_AIR, SUSTAINABLE_ALTERNATIVE, or HEALTH_ALERT.',
-  ACTION: 'Specific, step-by-step action tailored to the home, commute, and family.',
-  IMPACT_EXPLANATION: 'Direct explanation of how this reduces PM2.5 exposure or urban emissions.',
+  ACTION: 'Specific, step-by-step action tailored to Indian home conditions, commute, and family.',
+  IMPACT_EXPLANATION:
+    'Exactly one clear sentence tying the PM2.5/PM10 exposure reduction directly to the provided US-scale AQI and household profile.',
   ESTIMATED_PM25_REDUCTION:
     'Estimated percentage reduction in personal PM2.5 exposure or emissions (0-100).',
 } as const;
@@ -41,35 +47,35 @@ export const ASSISTANT_SCHEMA_DESCRIPTIONS = {
  */
 export const SAFE_FALLBACK_ASSISTANT_RESPONSE: AssistantResponse = {
   summary:
-    'Elevated urban particulate levels require reducing outdoor peak-hour exposure and keeping indoor living spaces sealed and filtered.',
+    'Elevated urban particulate levels require shifting outdoor trips to cleaner midday hours, wet-mopping indoor dust, and filtering primary rooms.',
   priorityGuidance:
-    'Keep windows closed during morning and evening inversion hours and run indoor filtration in main living areas.',
+    'Keep windows closed during morning and evening smog peaks and run room-sized filtration in main sleeping areas.',
   recommendations: [
     {
       title: 'Protect Sensitive Breathing Zones',
       category: 'HEALTH_ALERT' as RecommendationCategory,
       action:
-        'Limit outdoor exertion during smog peaks, monitor breathing symptoms, and keep well-fitted N95/KF94 masks ready for essential trips.',
+        'Limit outdoor exertion during smog peaks, monitor breathing symptoms, and wear fitted N95/KF94 masks on essential commutes.',
       impactExplanation:
-        'Cuts acute fine-particle inhalation for children, older adults, and respiratory-sensitive household members.',
+        'At elevated US-scale AQI levels, N95 filtration and reduced peak exertion cut acute PM2.5 inhalation for sensitive household members.',
       estimatedPM25Reduction: 55,
     },
     {
-      title: 'Create a Clean-Air Living Room Zone',
+      title: 'Wet Mop and Create a Sealed Clean-Air Room',
       category: 'INDOOR_AIR' as RecommendationCategory,
       action:
-        'Seal window and door gaps with weatherstripping and run a HEPA purifier or DIY box-fan MERV-13 filter continuously.',
+        'Wet-mop floors instead of dry sweeping, seal door gaps with weatherstripping, and run a room-sized HEPA purifier or DIY box-fan MERV-13 unit (indoor plants help only marginally).',
       impactExplanation:
-        'Minimizes fine particulate infiltration and lowers indoor PM2.5 concentrations where the family spends most hours.',
+        'Suppressing settled PM10 dust and isolating one closed bedroom sharply reduces indoor particulate levels for your home type.',
       estimatedPM25Reduction: 45,
     },
     {
-      title: 'Shift Essential Trips Away from Rush-Hour Peaks',
+      title: 'Shift Outdoor Trips to Midday Dispersion Hours',
       category: 'DAILY_ROUTINE' as RecommendationCategory,
       action:
-        'Schedule school runs, errands, and transit trips between late morning and mid-afternoon when dispersion improves.',
+        'Schedule school runs, errands, outdoor practice, and enclosed metro/transit commutes during late morning to mid-afternoon rather than early smog peaks.',
       impactExplanation:
-        'Avoids morning and evening temperature-inversion smog spikes and cuts inhaled roadside particulate matter.',
+        'Avoiding morning and evening inversion layers cuts roadside PM2.5 inhalation during your daily commute.',
       estimatedPM25Reduction: 35,
     },
     {

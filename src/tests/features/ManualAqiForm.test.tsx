@@ -44,7 +44,21 @@ describe('ManualAqiForm', () => {
     expect(onSubmitManualAqi).not.toHaveBeenCalled();
   });
 
-  it('accepts valid AQI and optional PM2.5 values and calls submit callback', () => {
+  it('rejects invalid optional PM10 values with inline error', () => {
+    const onSubmitManualAqi = vi.fn();
+    render(<ManualAqiForm isLoading={false} onSubmitManualAqi={onSubmitManualAqi} />);
+
+    const pm10Input = screen.getByLabelText<HTMLInputElement>(UI_LABELS.MANUAL_PM10_INPUT_LABEL);
+    fireEvent.change(pm10Input, { target: { value: '2500' } });
+
+    expect(pm10Input).toHaveAttribute('aria-invalid', 'true');
+    expect(pm10Input).toHaveAttribute('aria-describedby', 'manual-pm10-error');
+    expect(pm10Input).toHaveAccessibleDescription(ERROR_MESSAGES.INVALID_MANUAL_PM10);
+    expect(screen.getByRole('alert')).toHaveTextContent(ERROR_MESSAGES.INVALID_MANUAL_PM10);
+    expect(onSubmitManualAqi).not.toHaveBeenCalled();
+  });
+
+  it('accepts valid AQI and optional PM2.5/PM10 values and calls submit callback', () => {
     const onSubmitManualAqi = vi.fn();
     render(<ManualAqiForm isLoading={false} onSubmitManualAqi={onSubmitManualAqi} />);
 
@@ -54,9 +68,12 @@ describe('ManualAqiForm', () => {
     fireEvent.change(screen.getByLabelText<HTMLInputElement>(UI_LABELS.MANUAL_PM25_INPUT_LABEL), {
       target: { value: '145' },
     });
+    fireEvent.change(screen.getByLabelText<HTMLInputElement>(UI_LABELS.MANUAL_PM10_INPUT_LABEL), {
+      target: { value: '260' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: UI_LABELS.MANUAL_AQI_SUBMIT_LABEL }));
     expect(onSubmitManualAqi).toHaveBeenCalledTimes(1);
-    expect(onSubmitManualAqi).toHaveBeenCalledWith(220, 145);
+    expect(onSubmitManualAqi).toHaveBeenCalledWith(220, 145, 260);
   });
 });

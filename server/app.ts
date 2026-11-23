@@ -12,6 +12,7 @@ import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/
 import { SERVER_CONFIG } from '../src/constants/server.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { handleLiveAqiLookup } from './aqiHandler.ts';
+import { handleIndianCitySearch } from './citiesHandler.ts';
 import { sendErrorResponse } from './errorResponse.ts';
 import { handleAssistantRecommendations } from './geminiHandler.ts';
 import { applySecurityHeaders, createApiRateLimiter } from './securityMiddleware.ts';
@@ -56,6 +57,17 @@ function apiErrorMiddleware(err: unknown, _req: Request, res: Response, _next: N
 }
 
 /**
+ * Resolves the TCP port from the PORT environment variable, falling back to SERVER_CONFIG.PORT (3000).
+ */
+export function resolveServerPort(rawPort: string | undefined): number {
+  if (!rawPort) return SERVER_CONFIG.PORT;
+  const parsed = Number(rawPort);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= SERVER_CONFIG.MAX_PORT
+    ? parsed
+    : SERVER_CONFIG.PORT;
+}
+
+/**
  * Configures and returns the Express application with security middleware, API routes,
  * JSON 404/error handlers, and production static or Vite dev frontend serving.
  */
@@ -68,6 +80,7 @@ export async function createApp(): Promise<Express> {
   app.use(express.json({ limit: SERVER_CONFIG.JSON_BODY_LIMIT }));
   app.use(API_ENDPOINTS.API_PREFIX, createApiRateLimiter());
   app.get(API_ENDPOINTS.AQI_LIVE, handleLiveAqiLookup);
+  app.get(API_ENDPOINTS.CITIES_SEARCH, handleIndianCitySearch);
   app.post(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, handleAssistantRecommendations);
 
   app.use(API_ENDPOINTS.API_PREFIX, (_req: Request, res: Response): void => {

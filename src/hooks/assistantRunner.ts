@@ -1,17 +1,22 @@
 /**
  * @module hooks/assistantRunner
- * Responsibility: Execute live and manual AQI + recommendation resolution steps with AbortSignal support.
+ * Responsibility: Execute live (city or coordinates) and manual AQI + recommendation resolution steps.
  * Must not hold React state, manage cooldown timers, or render UI components.
  */
 import { ERROR_MESSAGES } from '../constants/http.ts';
 import { UI_COPY } from '../constants/uiTheme.ts';
-import { createManualAqiData, fetchAqiDataByCity } from '../services/aqiService.ts';
+import {
+  createManualAqiData,
+  fetchAqiDataByCity,
+  fetchAqiDataByCoordinates,
+} from '../services/aqiService.ts';
 import { getAirQualityRecommendations } from '../services/geminiService.ts';
 import { isAbortError } from '../services/httpClient.ts';
 import {
   type AppError,
   type AqiData,
   type AssistantResponse,
+  type Coordinates,
   ErrorCode,
   type UserProfile,
 } from '../types/index.ts';
@@ -20,8 +25,33 @@ import { applyUrgencyRules } from '../utils/urgencyRules.ts';
 
 /** Last executed recommendation request parameters used for mode-preserving retry. */
 export type LastAssistantRequest =
-  | { mode: 'live'; profile: UserProfile }
-  | { mode: 'manual'; profile: UserProfile; aqi: number; pm25?: number };
+  | { mode: 'live'; profile: UserProfile; coordinates?: Coordinates; useCoordinatesOnly?: boolean }
+  | { mode: 'manual'; profile: UserProfile; aqi: number; pm25?: number; pm10?: number };
+
+/** Return value contract of the useAssistant custom hook. */
+export interface UseAssistantResult {
+  aqiData: AqiData | null;
+  assistantResponse: AssistantResponse | null;
+  isLoading: boolean;
+  isAqiUnavailable: boolean;
+  cooldownSeconds: number;
+  cooldownNotice: string | null;
+  error: AppError | null;
+  requestRecommendations: (profile: UserProfile, coordinates?: Coordinates) => Promise<void>;
+  requestRecommendationsByLocation: (
+    profile: UserProfile,
+    coordinates: Coordinates,
+  ) => Promise<void>;
+  requestRecommendationsWithManualAqi: (
+    profile: UserProfile,
+    aqi: number,
+    pm25?: number,
+    pm10?: number,
+  ) => Promise<void>;
+  enableManualAqi: () => void;
+  retryLastRequest: () => Promise<void>;
+  clearError: () => void;
+}
 
 /** Formatted notice shown when a user triggers a request during submit cooldown. */
 export function formatCooldownNotice(cooldownSeconds: number): string {
@@ -33,8 +63,7 @@ export function formatCooldownNotice(cooldownSeconds: number): string {
 }
 
 /**
- * Resolves AQI data (live or manual) and fetches urgency-ranked AI recommendations.
- * Returns normalized error outcomes while propagating AbortError cancellations untouched.
+ * Resolves AQI data (by city, coordinates, or manual entry) and fetches urgency-ranked AI recommendations.
  */
 export async function executeAssistantRequest(
   req: LastAssistantRequest,
@@ -45,9 +74,13 @@ export async function executeAssistantRequest(
   const isManual = req.mode === 'manual';
 
   try {
-    resolvedAqi = isManual
-      ? createManualAqiData(req.profile.city, req.aqi, req.pm25)
-      : await fetchAqiDataByCity(req.profile.city, signal);
+    if (isManual) {
+      resolvedAqi = createManualAqiData(req.profile.city, req.aqi, req.pm25, req.pm10);
+    } else if (req.useCoordinatesOnly && req.coordinates) {
+      resolvedAqi = await fetchAqiDataByCoordinates(req.coordinates, signal);
+    } else {
+      resolvedAqi = await fetchAqiDataByCity(req.profile.city, signal, req.coordinates);
+    }
   } catch (err: unknown) {
     if (signal.aborted || isAbortError(err)) throw err;
     const fallbackCode = isManual ? ErrorCode.VALIDATION_ERROR : ErrorCode.AQI_FETCH_ERROR;
@@ -66,8 +99,12 @@ export async function executeAssistantRequest(
   onResolvedAqi(resolvedAqi);
 
   try {
-    const rawResponse = await getAirQualityRecommendations(req.profile, resolvedAqi, signal);
-    return { response: applyUrgencyRules(rawResponse, req.profile, resolvedAqi) };
+    const profileForAi: UserProfile =
+      req.mode === 'live' && req.useCoordinatesOnly
+        ? { ...req.profile, city: resolvedAqi.city }
+        : req.profile;
+    const rawResponse = await getAirQualityRecommendations(profileForAi, resolvedAqi, signal);
+    return { response: applyUrgencyRules(rawResponse, profileForAi, resolvedAqi) };
   } catch (err: unknown) {
     if (signal.aborted || isAbortError(err)) throw err;
     return {

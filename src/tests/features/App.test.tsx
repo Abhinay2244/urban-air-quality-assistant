@@ -27,20 +27,27 @@ afterEach(() => {
 });
 
 describe('App integration flow', () => {
-  it('shows empty state first, renders live results inside aria-live region, and shows cooldown notice on rapid re-submit', async () => {
+  it('shows empty state first, renders live results with Today plan inside aria-live region, and shows cooldown notice', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request): Promise<Response> => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.startsWith(API_ENDPOINTS.AQI_LIVE)) {
         return new Response(
           JSON.stringify({
-            city: 'New Delhi',
+            city: 'Delhi',
             country: 'India',
+            stationName: 'Mandir Marg, Delhi',
+            provider: 'waqi',
             aqi: 215,
             pm25: 140,
             pm10: 210,
             no2: 45,
             o3: 22,
             updatedAt: '2026-11-18T08:00:00Z',
+            hourlyPm25: [
+              { time: '2026-11-18T08:00', pm25: 160 },
+              { time: '2026-11-18T13:00', pm25: 85 },
+              { time: '2026-11-18T14:00', pm25: 75 },
+            ],
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
@@ -59,8 +66,13 @@ describe('App integration flow', () => {
 
     const liveRegion = container.querySelector('[aria-live="polite"]');
     await waitFor(() => {
-      expect(liveRegion).toHaveTextContent('New Delhi, India');
+      expect(liveRegion).toHaveTextContent('Delhi, India');
       expect(liveRegion).toHaveTextContent('215');
+      expect(liveRegion).toHaveTextContent('Very Unhealthy');
+      expect(liveRegion).toHaveTextContent(APP_TEXT.LIVE_WAQI_SOURCE_LABEL);
+      expect(liveRegion).toHaveTextContent('PM10: 210.0 ug/m3');
+      expect(liveRegion).toHaveTextContent(UI_COPY.TODAYS_PLAN_TITLE);
+      expect(liveRegion).toHaveTextContent(UI_COPY.BEST_OUTDOOR_TITLE);
       expect(liveRegion).toHaveTextContent('Seal Balcony Windows');
     });
 
@@ -74,7 +86,7 @@ describe('App integration flow', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('shows ManualAqiForm on live AQI failure, supports ErrorBanner retry/dismiss, and renders manual plan', async () => {
+  it('shows ManualAqiForm on live AQI failure, supports retry/dismiss, and labels manual entry results', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -126,6 +138,7 @@ describe('App integration flow', () => {
     const liveRegion = container.querySelector('[aria-live="polite"]');
     await waitFor(() => {
       expect(liveRegion).toHaveTextContent('240');
+      expect(liveRegion).toHaveTextContent(APP_TEXT.MANUAL_AQI_SOURCE_LABEL);
       expect(liveRegion).toHaveTextContent('Seal Balcony Windows');
     });
   });

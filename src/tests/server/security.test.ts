@@ -53,7 +53,7 @@ describe('server securityMiddleware', () => {
         expect(res1.status).toBe(HTTP_STATUS.OK);
         expect(res2.status).toBe(HTTP_STATUS.OK);
         expect(blocked.status).toBe(HTTP_STATUS.TOO_MANY_REQUESTS);
-        expect(blocked.headers.get('retry-after')).toBeTruthy();
+        expect(blocked.headers.get('retry-after')).toMatch(/^\d+$/);
         expect(await blocked.json()).toMatchObject({ code: ERROR_CODES.RATE_LIMIT_EXCEEDED });
 
         fakeNow += 1100;

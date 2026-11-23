@@ -4,6 +4,7 @@ import { mapGeminiUpstreamError } from '../../../server/errorResponse.ts';
 import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
 import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../../constants/http.ts';
 import { AqiCategoryId } from '../../types/index.ts';
+import { withEphemeralServer } from '../fixtures/serverHarness.ts';
 
 describe('server geminiHandler and upstream error mapping', () => {
   const originalKey = process.env.GEMINI_API_KEY;
@@ -14,42 +15,55 @@ describe('server geminiHandler and upstream error mapping', () => {
 
   it('rejects invalid enums, non-boolean flags, and NaN AQI values with 400 over HTTP', async () => {
     process.env.GEMINI_API_KEY = 'test-key';
-    const app = await createApp();
-    const server = app.listen(0);
-
-    try {
-      const address = server.address();
-      if (!address || typeof address === 'string') {
-        throw new Error('Expected TCP server address');
-      }
-      const response = await fetch(
-        `http://127.0.0.1:${address.port}${API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            profile: { ...DEFAULT_USER_PROFILE, commuteMode: 'HELICOPTER', hasChildren: 'true' },
-            aqiData: {
-              city: 'New Delhi',
-              country: 'India',
-              aqi: null,
-              pm25: 120,
-              pm10: 180,
-              no2: 40,
-              o3: 20,
-              category: AqiCategoryId.UNHEALTHY,
-              updatedAt: '2026-11-18T08:00:00Z',
-            },
-          }),
-        },
-      );
+    await withEphemeralServer(createApp, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}${API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: { ...DEFAULT_USER_PROFILE, commuteMode: 'HELICOPTER', hasChildren: 'true' },
+          aqiData: {
+            city: 'New Delhi',
+            country: 'India',
+            aqi: null,
+            pm25: 120,
+            pm10: 180,
+            no2: 40,
+            o3: 20,
+            category: AqiCategoryId.VERY_UNHEALTHY,
+            updatedAt: '2026-11-18T08:00:00Z',
+          },
+        }),
+      });
 
       expect(response.status).toBe(HTTP_STATUS.BAD_REQUEST);
       const body: unknown = await response.json();
       expect(body).toMatchObject({ code: ERROR_CODES.VALIDATION_ERROR });
-    } finally {
-      server.close();
-    }
+    });
+  });
+
+  it('accepts live AQI above 500 without returning a 400 validation error', async () => {
+    delete process.env.GEMINI_API_KEY;
+    await withEphemeralServer(createApp, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}${API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: DEFAULT_USER_PROFILE,
+          aqiData: {
+            city: 'Delhi',
+            country: 'India',
+            aqi: 640,
+            pm25: 410,
+            no2: 60,
+            o3: 20,
+            category: AqiCategoryId.HAZARDOUS,
+            updatedAt: '2026-11-18T08:00:00Z',
+          },
+        }),
+      });
+      // Reaching missing-key check (500) proves payload validation accepted AQI 640
+      expect(response.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    });
   });
 
   it('maps known upstream Gemini error statuses to safe user messages without raw details', () => {

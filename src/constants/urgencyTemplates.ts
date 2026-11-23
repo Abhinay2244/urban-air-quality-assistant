@@ -6,13 +6,13 @@
 import { RecommendationCategory, UrgencyLevel } from '../types/index.ts';
 
 /**
- * Audience labels and very-unhealthy-AQI protective alert template.
+ * Audience labels and US-scale Unhealthy (151+ all) / USG (101+ sensitive) protective alert template.
  */
-export const VERY_UNHEALTHY_ALERT_TEMPLATE = {
+export const SEVERE_ALERT_TEMPLATE = {
   TITLE: 'Stay Indoors and Wear a Fitted N95 Mask for Essential Trips',
   CATEGORY: RecommendationCategory.HEALTH_ALERT,
   IMPACT_EXPLANATION:
-    'Prevents acute PM2.5 inhalation spikes that trigger airway inflammation and flare-ups.',
+    'Prevents acute PM2.5 and PM10 inhalation spikes that trigger airway inflammation and flare-ups.',
   ESTIMATED_PM25_REDUCTION: 70,
   URGENCY: UrgencyLevel.CRITICAL,
   DEFAULT_AUDIENCE: 'all household members',
@@ -23,9 +23,9 @@ export const VERY_UNHEALTHY_ALERT_TEMPLATE = {
 } as const;
 
 /**
- * Priority guidance headline builder constants for very unhealthy conditions.
+ * Priority guidance headline builder constants for US EPA 101+ (sensitive) / 151+ (all) alerts.
  */
-export const VERY_UNHEALTHY_PRIORITY_TEMPLATE = {
+export const SEVERE_PRIORITY_TEMPLATE = {
   PREFIX: 'Stay indoors, seal living spaces, and use a fitted N95 mask for essential trips (AQI ',
   SUFFIX: ').',
 } as const;

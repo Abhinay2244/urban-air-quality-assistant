@@ -3,6 +3,7 @@ import { PROFILE_OPTIONS, UI_LABELS } from '../../constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import type { AqiData, UserProfile } from '../../types/index.ts';
 import { getAqiCategoryInfo } from '../../utils/aqiCalculations.ts';
+import { formatPM25Value } from '../../utils/formatting.ts';
 
 /**
  * Props for WhyThesePanel component.
@@ -25,7 +26,7 @@ interface ContextChip {
 }
 
 /**
- * Surfaces the city, AQI, sensitivities, commute, and home inputs driving AI recommendations.
+ * Surfaces the city, AQI, PM10, persona, sensitivities, commute, and home inputs driving AI guidance.
  */
 export function WhyThesePanel({ profile, aqiData }: WhyThesePanelProps): ReactElement {
   const chips: ContextChip[] = [{ id: 'city', label: aqiData ? aqiData.city : profile.city }];
@@ -33,8 +34,18 @@ export function WhyThesePanel({ profile, aqiData }: WhyThesePanelProps): ReactEl
   if (aqiData) {
     const category = getAqiCategoryInfo(aqiData.category);
     chips.push({ id: 'aqi', label: `${UI_LABELS.AQI_LABEL} ${aqiData.aqi} (${category.label})` });
+    if (aqiData.pm10 !== undefined) {
+      chips.push({
+        id: 'pm10',
+        label: `${UI_LABELS.PM10_LABEL} ${formatPM25Value(aqiData.pm10)}`,
+      });
+    }
   }
 
+  chips.push({
+    id: 'familyType',
+    label: findLabel(PROFILE_OPTIONS.FAMILY_TYPES, profile.familyType),
+  });
   if (profile.hasChildren) chips.push({ id: 'children', label: UI_LABELS.HAS_CHILDREN_LABEL });
   if (profile.hasElderly) chips.push({ id: 'elderly', label: UI_LABELS.HAS_ELDERLY_LABEL });
   if (profile.hasRespiratoryCondition) {

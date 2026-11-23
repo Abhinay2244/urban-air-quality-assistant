@@ -5,14 +5,12 @@
  */
 import { CommuteMode, FamilyType, HomeType, type UserProfile } from '../types/index.ts';
 
-/**
- * Sample household scenarios shown in the empty state to help users explore quickly.
- */
+/** Sample household scenarios shown in the empty state to help users explore quickly. */
 export const SAMPLE_SCENARIOS: ReadonlyArray<{ label: string; profile: UserProfile }> = [
   {
-    label: 'New Delhi · Family with children',
+    label: 'Delhi · Parent with children',
     profile: {
-      city: 'New Delhi',
+      city: 'Delhi',
       familyType: FamilyType.NUCLEAR,
       hasChildren: true,
       hasElderly: false,
@@ -22,9 +20,45 @@ export const SAMPLE_SCENARIOS: ReadonlyArray<{ label: string; profile: UserProfi
     },
   },
   {
-    label: 'Lahore · Asthma sensitivity',
+    label: 'Noida · Senior citizen',
     profile: {
-      city: 'Lahore',
+      city: 'Noida',
+      familyType: FamilyType.MULTI_GENERATIONAL,
+      hasChildren: false,
+      hasElderly: true,
+      hasRespiratoryCondition: true,
+      commuteMode: CommuteMode.CAR,
+      homeType: HomeType.APARTMENT,
+    },
+  },
+  {
+    label: 'Mumbai · Working professional',
+    profile: {
+      city: 'Mumbai',
+      familyType: FamilyType.WORKING_PROFESSIONAL,
+      hasChildren: false,
+      hasElderly: false,
+      hasRespiratoryCondition: false,
+      commuteMode: CommuteMode.PUBLIC_TRANSIT,
+      homeType: HomeType.APARTMENT,
+    },
+  },
+  {
+    label: 'Kolkata · Student athlete',
+    profile: {
+      city: 'Kolkata',
+      familyType: FamilyType.STUDENT,
+      hasChildren: false,
+      hasElderly: false,
+      hasRespiratoryCondition: false,
+      commuteMode: CommuteMode.WALK_OR_BIKE,
+      homeType: HomeType.SHARED_HOUSING,
+    },
+  },
+  {
+    label: 'Lucknow · Family with asthma',
+    profile: {
+      city: 'Lucknow',
       familyType: FamilyType.MULTI_GENERATIONAL,
       hasChildren: true,
       hasElderly: true,
@@ -34,14 +68,14 @@ export const SAMPLE_SCENARIOS: ReadonlyArray<{ label: string; profile: UserProfi
     },
   },
   {
-    label: 'Beijing · Cycling commuter',
+    label: 'Hyderabad · Remote household',
     profile: {
-      city: 'Beijing',
-      familyType: FamilyType.COUPLE,
+      city: 'Hyderabad',
+      familyType: FamilyType.SINGLE,
       hasChildren: false,
       hasElderly: false,
       hasRespiratoryCondition: false,
-      commuteMode: CommuteMode.WALK_OR_BIKE,
+      commuteMode: CommuteMode.REMOTE,
       homeType: HomeType.APARTMENT,
     },
   },

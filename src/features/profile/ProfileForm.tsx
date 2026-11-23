@@ -8,7 +8,7 @@ import { SensitivityIcon } from '../../components/SensitivityIcon.tsx';
 import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import type { ProfileFieldErrors } from '../../hooks/useProfile.ts';
-import type { UserProfile } from '../../types/index.ts';
+import type { CitySearchResult, Coordinates, UserProfile } from '../../types/index.ts';
 import { LocationCard } from './LocationCard.tsx';
 import {
   COMMUTE_MODE_FIELD,
@@ -17,9 +17,7 @@ import {
   PROFILE_SENSITIVITY_FIELDS,
 } from './profileFields.ts';
 
-/**
- * Props for ProfileForm feature component.
- */
+/** Props for ProfileForm feature component. */
 export interface ProfileFormProps {
   profile: UserProfile;
   fieldErrors: ProfileFieldErrors;
@@ -27,12 +25,12 @@ export interface ProfileFormProps {
   cooldownSeconds: number;
   cooldownNotice?: string | null;
   onFieldChange: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
+  onSelectCityResult?: (result: CitySearchResult) => void;
+  onUseCurrentLocation?: (coords: Coordinates) => void;
   onSubmit: () => void;
 }
 
-/**
- * Captures location, household sensitivities, and lifestyle details across three clear cards.
- */
+/** Captures location, household sensitivities, and lifestyle details across three clear cards. */
 export function ProfileForm({
   profile,
   fieldErrors,
@@ -40,16 +38,16 @@ export function ProfileForm({
   cooldownSeconds,
   cooldownNotice = null,
   onFieldChange,
+  onSelectCityResult,
+  onUseCurrentLocation,
   onSubmit,
 }: ProfileFormProps): ReactElement {
   const cityError = fieldErrors.city;
   const isSubmitDisabled = isLoading || cooldownSeconds > 0 || Boolean(cityError);
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     onSubmit();
   };
-
   const buttonLabel = isLoading
     ? APP_TEXT.LOADING_LABEL
     : cooldownSeconds > 0
@@ -61,7 +59,10 @@ export function ProfileForm({
       <LocationCard
         city={profile.city}
         cityError={cityError}
+        isLoading={isLoading}
         onCityChange={(nextCity) => onFieldChange('city', nextCity)}
+        onSelectCityResult={onSelectCityResult}
+        onUseCurrentLocation={onUseCurrentLocation}
       />
 
       <SectionCard title={UI_COPY.HOUSEHOLD_CARD_TITLE}>

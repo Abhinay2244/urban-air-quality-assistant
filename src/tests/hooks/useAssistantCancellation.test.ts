@@ -1,13 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
 import { useAssistant } from '../../hooks/useAssistant.ts';
-import * as aqiService from '../../services/aqiService.ts';
-import * as geminiService from '../../services/geminiService.ts';
 import type { AqiData } from '../../types/index.ts';
 import {
+  DEFAULT_PROFILE_FIXTURE,
   MOCK_AQI_FIXTURE,
   MOCK_ASSISTANT_RESPONSE_FIXTURE,
+  spyCityAqiLookup,
+  spyRecommendationsCall,
 } from '../fixtures/assistantFixtures.ts';
 
 describe('useAssistant cancellation and cooldown notice', () => {
@@ -16,18 +16,16 @@ describe('useAssistant cancellation and cooldown notice', () => {
   });
 
   it('surfaces visible cooldownNotice when request is ignored during cooldown', async () => {
-    vi.spyOn(aqiService, 'fetchAqiDataByCity').mockResolvedValueOnce(MOCK_AQI_FIXTURE);
-    vi.spyOn(geminiService, 'getAirQualityRecommendations').mockResolvedValueOnce(
-      MOCK_ASSISTANT_RESPONSE_FIXTURE,
-    );
+    spyCityAqiLookup().mockResolvedValueOnce(MOCK_AQI_FIXTURE);
+    spyRecommendationsCall().mockResolvedValueOnce(MOCK_ASSISTANT_RESPONSE_FIXTURE);
 
     const { result } = renderHook(() => useAssistant());
     await act(async () => {
-      await result.current.requestRecommendations(DEFAULT_USER_PROFILE);
+      await result.current.requestRecommendations(DEFAULT_PROFILE_FIXTURE);
     });
 
     await act(async () => {
-      await result.current.requestRecommendations(DEFAULT_USER_PROFILE);
+      await result.current.requestRecommendations(DEFAULT_PROFILE_FIXTURE);
     });
 
     expect(result.current.cooldownNotice).toBe(
@@ -38,7 +36,7 @@ describe('useAssistant cancellation and cooldown notice', () => {
   it('aborts the first in-flight request when a second request starts', async () => {
     const capturedSignals: Array<AbortSignal | undefined> = [];
 
-    vi.spyOn(aqiService, 'fetchAqiDataByCity')
+    spyCityAqiLookup()
       .mockImplementationOnce(
         (_city, signal) =>
           new Promise<AqiData>((_resolve, reject) => {
@@ -52,20 +50,18 @@ describe('useAssistant cancellation and cooldown notice', () => {
         capturedSignals.push(signal);
         return { ...MOCK_AQI_FIXTURE, city: 'Lahore' };
       });
-    vi.spyOn(geminiService, 'getAirQualityRecommendations').mockResolvedValueOnce(
-      MOCK_ASSISTANT_RESPONSE_FIXTURE,
-    );
+    spyRecommendationsCall().mockResolvedValueOnce(MOCK_ASSISTANT_RESPONSE_FIXTURE);
 
     const { result } = renderHook(() => useAssistant());
 
     let firstPromise: Promise<void> | undefined;
     act(() => {
-      firstPromise = result.current.requestRecommendations(DEFAULT_USER_PROFILE);
+      firstPromise = result.current.requestRecommendations(DEFAULT_PROFILE_FIXTURE);
     });
     expect(capturedSignals[0]?.aborted).toBe(false);
 
     await act(async () => {
-      await result.current.requestRecommendations({ ...DEFAULT_USER_PROFILE, city: 'Lahore' });
+      await result.current.requestRecommendations({ ...DEFAULT_PROFILE_FIXTURE, city: 'Lahore' });
       await firstPromise;
     });
 
@@ -77,7 +73,7 @@ describe('useAssistant cancellation and cooldown notice', () => {
 
   it('aborts active in-flight request when hook unmounts', () => {
     let capturedSignal: AbortSignal | undefined;
-    vi.spyOn(aqiService, 'fetchAqiDataByCity').mockImplementationOnce(
+    spyCityAqiLookup().mockImplementationOnce(
       (_city, signal) =>
         new Promise<AqiData>(() => {
           capturedSignal = signal;
@@ -86,7 +82,7 @@ describe('useAssistant cancellation and cooldown notice', () => {
 
     const { result, unmount } = renderHook(() => useAssistant());
     act(() => {
-      void result.current.requestRecommendations(DEFAULT_USER_PROFILE);
+      void result.current.requestRecommendations(DEFAULT_PROFILE_FIXTURE);
     });
 
     expect(capturedSignal?.aborted).toBe(false);

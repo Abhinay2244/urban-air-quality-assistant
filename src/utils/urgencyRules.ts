@@ -1,13 +1,13 @@
 /**
  * @module utils/urgencyRules
- * Responsibility: Enrich assistant recommendations with deterministic AQI and household urgency rules.
+ * Responsibility: Enrich assistant recommendations with deterministic US-scale AQI and household urgency rules.
  * Must not invoke Gemini, fetch AQI data, or contain UI rendering logic.
  */
 import { AQI_THRESHOLDS } from '../constants/aqi.ts';
 import {
   CONTEXT_RULE_TEMPLATES,
-  VERY_UNHEALTHY_ALERT_TEMPLATE,
-  VERY_UNHEALTHY_PRIORITY_TEMPLATE,
+  SEVERE_ALERT_TEMPLATE,
+  SEVERE_PRIORITY_TEMPLATE,
 } from '../constants/urgencyTemplates.ts';
 import {
   type AqiData,
@@ -30,23 +30,22 @@ function hasVulnerableMembers(profile: UserProfile): boolean {
   return profile.hasChildren || profile.hasElderly || profile.hasRespiratoryCondition;
 }
 
-function buildVeryUnhealthyAlertRecommendation(profile: UserProfile, aqi: number): Recommendation {
+function buildSevereAlertRecommendation(profile: UserProfile, aqi: number): Recommendation {
   const groups: string[] = [];
   if (profile.hasRespiratoryCondition) {
-    groups.push(VERY_UNHEALTHY_ALERT_TEMPLATE.AUDIENCE_RESPIRATORY);
+    groups.push(SEVERE_ALERT_TEMPLATE.AUDIENCE_RESPIRATORY);
   }
-  if (profile.hasChildren) groups.push(VERY_UNHEALTHY_ALERT_TEMPLATE.AUDIENCE_CHILDREN);
-  if (profile.hasElderly) groups.push(VERY_UNHEALTHY_ALERT_TEMPLATE.AUDIENCE_ELDERLY);
-  const audience =
-    groups.length > 0 ? groups.join(', ') : VERY_UNHEALTHY_ALERT_TEMPLATE.DEFAULT_AUDIENCE;
+  if (profile.hasChildren) groups.push(SEVERE_ALERT_TEMPLATE.AUDIENCE_CHILDREN);
+  if (profile.hasElderly) groups.push(SEVERE_ALERT_TEMPLATE.AUDIENCE_ELDERLY);
+  const audience = groups.length > 0 ? groups.join(', ') : SEVERE_ALERT_TEMPLATE.DEFAULT_AUDIENCE;
 
   return {
-    title: VERY_UNHEALTHY_ALERT_TEMPLATE.TITLE,
-    category: VERY_UNHEALTHY_ALERT_TEMPLATE.CATEGORY,
+    title: SEVERE_ALERT_TEMPLATE.TITLE,
+    category: SEVERE_ALERT_TEMPLATE.CATEGORY,
     action: `At AQI ${aqi}, keep ${audience} indoors with windows closed, run filtration, and wear a fitted N95/KF94 mask outside.`,
-    impactExplanation: VERY_UNHEALTHY_ALERT_TEMPLATE.IMPACT_EXPLANATION,
-    estimatedPM25Reduction: VERY_UNHEALTHY_ALERT_TEMPLATE.ESTIMATED_PM25_REDUCTION,
-    urgency: VERY_UNHEALTHY_ALERT_TEMPLATE.URGENCY,
+    impactExplanation: SEVERE_ALERT_TEMPLATE.IMPACT_EXPLANATION,
+    estimatedPM25Reduction: SEVERE_ALERT_TEMPLATE.ESTIMATED_PM25_REDUCTION,
+    urgency: SEVERE_ALERT_TEMPLATE.URGENCY,
   };
 }
 
@@ -62,18 +61,18 @@ function buildContextRecommendation(profile: UserProfile): Recommendation {
 
 function scoreUrgency(rec: Recommendation, profile: UserProfile, aqi: number): UrgencyLevel {
   const vulnerable = hasVulnerableMembers(profile);
-  if (aqi >= AQI_THRESHOLDS.VERY_UNHEALTHY) {
+  if (aqi >= AQI_THRESHOLDS.UNHEALTHY) {
     return rec.category === RecommendationCategory.HEALTH_ALERT ||
       rec.category === RecommendationCategory.INDOOR_AIR
       ? UrgencyLevel.CRITICAL
       : UrgencyLevel.HIGH;
   }
-  if (aqi >= AQI_THRESHOLDS.UNHEALTHY && vulnerable) {
+  if (aqi >= AQI_THRESHOLDS.UNHEALTHY_SENSITIVE && vulnerable) {
     return rec.category === RecommendationCategory.HEALTH_ALERT
       ? UrgencyLevel.CRITICAL
       : UrgencyLevel.HIGH;
   }
-  if (aqi >= AQI_THRESHOLDS.SENSITIVE && rec.category === RecommendationCategory.HEALTH_ALERT) {
+  if (aqi >= AQI_THRESHOLDS.MODERATE && rec.category === RecommendationCategory.HEALTH_ALERT) {
     return UrgencyLevel.HIGH;
   }
   return rec.urgency ?? UrgencyLevel.STANDARD;
@@ -81,7 +80,7 @@ function scoreUrgency(rec: Recommendation, profile: UserProfile, aqi: number): U
 
 /**
  * Applies dynamic urgency, prioritization, and profile-specific protective rules
- * based on AQI severity, household vulnerabilities, commute mode, and home type.
+ * based on US EPA AQI thresholds (101+ for sensitive households, 151+ for all households).
  */
 export function applyUrgencyRules(
   response: AssistantResponse,
@@ -89,9 +88,11 @@ export function applyUrgencyRules(
   aqiData: AqiData,
 ): AssistantResponse {
   const vulnerable = hasVulnerableMembers(profile);
-  const veryUnhealthyOrSensitive =
-    aqiData.aqi >= AQI_THRESHOLDS.VERY_UNHEALTHY ||
-    (aqiData.aqi >= AQI_THRESHOLDS.UNHEALTHY && profile.hasRespiratoryCondition);
+  // Why: On the US EPA AQI scale, 101+ (Unhealthy for Sensitive Groups) requires stay-indoors/N95
+  // guidance for sensitive households, while 151+ (Unhealthy) triggers it for every household.
+  const triggersSevereAlert =
+    (aqiData.aqi >= AQI_THRESHOLDS.UNHEALTHY_SENSITIVE && vulnerable) ||
+    aqiData.aqi >= AQI_THRESHOLDS.UNHEALTHY;
 
   const enriched: Recommendation[] = response.recommendations.map((rec) => ({
     ...rec,
@@ -101,16 +102,14 @@ export function applyUrgencyRules(
   const hasMaskAlert = enriched.some(
     (rec) =>
       rec.category === RecommendationCategory.HEALTH_ALERT &&
-      rec.action.toLowerCase().includes(VERY_UNHEALTHY_ALERT_TEMPLATE.MASK_KEYWORD),
+      rec.action.toLowerCase().includes(SEVERE_ALERT_TEMPLATE.MASK_KEYWORD),
   );
 
-  // Why: Prepend protective stay-indoors/mask guidance before sorting so critical alerts stay first
-  // even when Gemini omits a mask recommendation or any health alert for vulnerable households.
   if (
-    (veryUnhealthyOrSensitive && !hasMaskAlert) ||
+    (triggersSevereAlert && !hasMaskAlert) ||
     (vulnerable && enriched.every((rec) => rec.category !== RecommendationCategory.HEALTH_ALERT))
   ) {
-    enriched.unshift(buildVeryUnhealthyAlertRecommendation(profile, aqiData.aqi));
+    enriched.unshift(buildSevereAlertRecommendation(profile, aqiData.aqi));
   }
 
   const contextRule = buildContextRecommendation(profile);
@@ -118,15 +117,16 @@ export function applyUrgencyRules(
     enriched.push(contextRule);
   }
 
-  // Why: Stable descending urgency sort guarantees life-safety CRITICAL alerts precede HIGH/STANDARD items.
+  // Why: Sort descending by deterministic severity rank so life-safety alerts always render first,
+  // regardless of the order returned by the AI model.
   enriched.sort(
     (a, b) =>
       URGENCY_RANK[b.urgency ?? UrgencyLevel.STANDARD] -
       URGENCY_RANK[a.urgency ?? UrgencyLevel.STANDARD],
   );
 
-  const priorityGuidance = veryUnhealthyOrSensitive
-    ? `${VERY_UNHEALTHY_PRIORITY_TEMPLATE.PREFIX}${aqiData.aqi}${VERY_UNHEALTHY_PRIORITY_TEMPLATE.SUFFIX}`
+  const priorityGuidance = triggersSevereAlert
+    ? `${SEVERE_PRIORITY_TEMPLATE.PREFIX}${aqiData.aqi}${SEVERE_PRIORITY_TEMPLATE.SUFFIX}`
     : response.priorityGuidance;
 
   return { ...response, priorityGuidance, recommendations: enriched };

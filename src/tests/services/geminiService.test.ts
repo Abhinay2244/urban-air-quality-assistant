@@ -10,7 +10,7 @@ import {
 } from '../../types/index.ts';
 
 const SAMPLE_AQI_DATA: AqiData = {
-  city: 'New Delhi',
+  city: 'Delhi',
   country: 'India',
   aqi: 260,
   pm25: 185,
@@ -29,7 +29,7 @@ describe('geminiService', () => {
 
   it('returns validated structured recommendations from the API endpoint', async () => {
     const modelJson = JSON.stringify({
-      summary: 'Severe winter smog requires indoor filtration.',
+      summary: 'High winter smog requires indoor filtration.',
       priorityGuidance: 'Keep children indoors and run HEPA purification.',
       recommendations: [
         {

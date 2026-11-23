@@ -6,7 +6,7 @@
 import { AqiCategoryId, RecommendationCategory } from '../types/index.ts';
 
 /**
- * UI copy and section headings for the redesigned visual layer.
+ * UI copy and section headings across the application.
  */
 export const UI_COPY = {
   TAGLINE: 'Breathe smarter through smog',
@@ -19,7 +19,7 @@ export const UI_COPY = {
   EXPOSURE_LEAD: 'You could cut PM2.5 exposure by',
   EXPOSURE_SUBTEXT: 'Combined estimate across all recommended actions today',
   WHY_THESE_TITLE: 'Why these suggestions',
-  WHY_THESE_SUBTITLE: 'Tailored to your live reading and household context',
+  WHY_THESE_SUBTITLE: 'Tailored to your provided AQI reading and household context',
   EMPTY_TITLE: 'Ready when you are',
   EMPTY_SAMPLE_PROMPT_LABEL: 'Try a sample scenario:',
   SAMPLE_A11Y_PREFIX: 'Load sample profile for',
@@ -32,10 +32,23 @@ export const UI_COPY = {
   COOLDOWN_NOTICE_PREFIX: 'Please wait',
   COOLDOWN_NOTICE_SINGULAR_UNIT: 'second',
   COOLDOWN_NOTICE_PLURAL_UNIT: 'seconds',
+  BEST_OUTDOOR_TITLE: 'Best time for outdoor activity',
+  BEST_OUTDOOR_SUBTITLE: 'Lowest 2-hour average PM2.5 in the next 24 hours',
+  BEST_OUTDOOR_AVG_LABEL: 'Avg PM2.5',
+  TODAYS_PLAN_TITLE: "Today's plan",
+  TODAYS_PLAN_SUBTITLE: 'Expected PM2.5 and suggested activity by time of day',
+  ABOVE_SCALE_NOTE: 'above scale',
+  GEOLOCATION_REQUESTING:
+    'Requesting location permission to find your nearest monitoring station...',
+  GEOLOCATION_DENIED:
+    'Location access was denied. No problem — search and pick your Indian city below instead.',
+  GEOLOCATION_UNAVAILABLE:
+    'Browser location services are unavailable or timed out. Pick your Indian city below.',
+  CITY_SEARCH_EMPTY: 'No matching Indian cities found. You can still type your city name directly.',
 } as const;
 
 /**
- * Visual styling tokens for each AQI severity tier in light and dark mode.
+ * Visual styling tokens for each US EPA AQI severity tier in light and dark mode (WCAG AA contrast).
  */
 export const AQI_VISUAL_TOKENS: Record<
   AqiCategoryId,
@@ -49,30 +62,29 @@ export const AQI_VISUAL_TOKENS: Record<
       'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/70',
   },
   [AqiCategoryId.MODERATE]: {
+    strokeHex: '#65a30d',
+    badgeClass:
+      'bg-lime-50 text-lime-900 border-lime-300 dark:bg-lime-950/70 dark:text-lime-200 dark:border-lime-700',
+    surfaceClass: 'bg-lime-50/70 border-lime-200 dark:bg-lime-950/30 dark:border-lime-800/70',
+  },
+  [AqiCategoryId.UNHEALTHY_SENSITIVE]: {
     strokeHex: '#d97706',
     badgeClass:
       'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-700',
     surfaceClass: 'bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/70',
   },
-  [AqiCategoryId.UNHEALTHY_SENSITIVE]: {
+  [AqiCategoryId.UNHEALTHY]: {
     strokeHex: '#ea580c',
     badgeClass:
       'bg-orange-50 text-orange-900 border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-700',
     surfaceClass:
       'bg-orange-50/70 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800/70',
   },
-  [AqiCategoryId.UNHEALTHY]: {
+  [AqiCategoryId.VERY_UNHEALTHY]: {
     strokeHex: '#dc2626',
     badgeClass:
       'bg-red-50 text-red-900 border-red-300 dark:bg-red-950/70 dark:text-red-200 dark:border-red-700',
     surfaceClass: 'bg-red-50/70 border-red-200 dark:bg-red-950/30 dark:border-red-800/70',
-  },
-  [AqiCategoryId.VERY_UNHEALTHY]: {
-    strokeHex: '#9333ea',
-    badgeClass:
-      'bg-purple-50 text-purple-900 border-purple-300 dark:bg-purple-950/70 dark:text-purple-200 dark:border-purple-700',
-    surfaceClass:
-      'bg-purple-50/70 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800/70',
   },
   [AqiCategoryId.HAZARDOUS]: {
     strokeHex: '#be123c',

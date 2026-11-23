@@ -34,6 +34,21 @@ export function formatTimestamp(isoString: string): string {
 }
 
 /**
+ * Formats an ISO or local YYYY-MM-DDTHH:mm timestamp into a concise 12-hour clock label.
+ */
+export function formatClockTime(timestamp: string): string {
+  const match = /T(\d{2}):(\d{2})/.exec(timestamp);
+  if (match) {
+    const hour24 = Number(match[1]);
+    const minute = match[2];
+    const period = hour24 >= 12 ? 'PM' : 'AM';
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    return `${hour12}:${minute} ${period}`;
+  }
+  return formatTimestamp(timestamp);
+}
+
+/**
  * Maps an UrgencyLevel value to a human-readable label.
  */
 export function formatUrgencyLabel(urgency: UrgencyLevel): string {

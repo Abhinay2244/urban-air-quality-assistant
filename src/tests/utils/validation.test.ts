@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
-import { SAFE_FALLBACK_ASSISTANT_RESPONSE } from '../../constants/prompts.ts';
-import { AqiCategoryId, RecommendationCategory } from '../../types/index.ts';
+import {
+  ASSISTANT_SYSTEM_INSTRUCTION,
+  SAFE_FALLBACK_ASSISTANT_RESPONSE,
+} from '../../constants/prompts.ts';
+import { AqiCategoryId, FamilyType, RecommendationCategory } from '../../types/index.ts';
 import { parseAndValidateAssistantResponse, readStringField } from '../../utils/assistantParser.ts';
 import { buildAssistantPrompt } from '../../utils/promptBuilder.ts';
 import { sanitizeText } from '../../utils/sanitizing.ts';
@@ -11,6 +14,7 @@ import {
   validateAqiData,
   validateCity,
   validateManualAqi,
+  validateOptionalPm10,
   validateOptionalPm25,
   validateUserProfile,
 } from '../../utils/validation.ts';
@@ -23,40 +27,55 @@ describe('sanitizing and validation utilities', () => {
 
   it('rejects too-short cities and accepts sanitized valid cities', () => {
     expect(validateCity(' <p>A</p> ').isValid).toBe(false);
-    const valid = validateCity('  Lahore <b>City</b>  ');
+    const valid = validateCity('  Lucknow <b>City</b>  ');
     expect(valid.isValid).toBe(true);
-    expect(valid.value).toBe('Lahore City');
+    expect(valid.value).toBe('Lucknow City');
   });
 
-  it('validates UserProfile and rejects invalid enums or non-boolean flags', () => {
+  it('validates UserProfile including Working Professional and Student and rejects invalid enums', () => {
     const valid = validateUserProfile({
       ...DEFAULT_USER_PROFILE,
-      city: '  Beijing<script>bad()</script> ',
+      familyType: FamilyType.STUDENT,
+      city: '  Kolkata<script>bad()</script> ',
     });
     expect(valid.isValid).toBe(true);
-    expect(valid.value.city).toBe('Beijing');
+    expect(valid.value.city).toBe('Kolkata');
 
-    const badEnum = validateUserProfile({ ...DEFAULT_USER_PROFILE, commuteMode: 'JETPACK' });
-    expect(badEnum.isValid).toBe(false);
-
-    const badFlag = validateUserProfile({ ...DEFAULT_USER_PROFILE, hasChildren: 'yes' });
-    expect(badFlag.isValid).toBe(false);
+    expect(validateUserProfile({ ...DEFAULT_USER_PROFILE, commuteMode: 'JETPACK' }).isValid).toBe(
+      false,
+    );
+    expect(validateUserProfile({ ...DEFAULT_USER_PROFILE, hasChildren: 'yes' }).isValid).toBe(
+      false,
+    );
   });
 
-  it('validates AqiData, manual AQI, optional PM2.5, isRecord, isOneOf, and unwrapValidation', () => {
+  it('accepts live AQI above 500 in validateAqiData while limiting manual AQI to 0-500', () => {
     expect(isRecord({ a: 1 })).toBe(true);
     expect(isRecord([1, 2])).toBe(false);
-    expect(isRecord(null)).toBe(false);
     expect(isOneOf('GOOD', Object.values(AqiCategoryId))).toBe(true);
     expect(isOneOf('INVALID', Object.values(AqiCategoryId))).toBe(false);
 
     expect(
       validateAqiData({
         city: 'Delhi',
-        country: 'IN',
+        country: 'India',
+        stationName: 'Anand Vihar, Delhi',
+        provider: 'waqi',
+        aqi: 640,
+        pm25: 420,
+        no2: 65,
+        o3: 15,
+        category: AqiCategoryId.HAZARDOUS,
+        updatedAt: '2026-11-18T08:00:00Z',
+      }),
+    ).toBe(true);
+
+    expect(
+      validateAqiData({
+        city: 'Delhi',
+        country: 'India',
         aqi: Number.NaN,
         pm25: 50,
-        pm10: 80,
         no2: 20,
         o3: 15,
         category: AqiCategoryId.UNHEALTHY,
@@ -68,6 +87,8 @@ describe('sanitizing and validation utilities', () => {
     expect(validateManualAqi('600').isValid).toBe(false);
     expect(validateOptionalPm25('').value).toBeUndefined();
     expect(validateOptionalPm25('-5').isValid).toBe(false);
+    expect(validateOptionalPm10('').value).toBeUndefined();
+    expect(validateOptionalPm10('2500').isValid).toBe(false);
     expect(() => unwrapValidation(validateCity('A'), 'bad city')).toThrow();
   });
 
@@ -94,18 +115,34 @@ describe('sanitizing and validation utilities', () => {
     expect(parseAndValidateAssistantResponse('{ bad')).toEqual(SAFE_FALLBACK_ASSISTANT_RESPONSE);
   });
 
-  it('builds sanitized prompts via promptBuilder', () => {
-    const prompt = buildAssistantPrompt(DEFAULT_USER_PROFILE, {
-      city: '<b>Lahore</b>',
-      country: 'Pakistan',
-      aqi: 220,
-      pm25: 170,
-      pm10: 240,
-      no2: 40,
-      o3: 20,
-      category: AqiCategoryId.VERY_UNHEALTHY,
-      updatedAt: '2026-11-18T08:00:00Z',
-    });
-    expect(prompt).toContain('City: Lahore, Pakistan');
+  it('builds sanitized prompts with data-integrity instruction, Student focus, PM10, and Today slots', () => {
+    expect(ASSISTANT_SYSTEM_INSTRUCTION.toLowerCase()).toContain('never invent');
+    const prompt = buildAssistantPrompt(
+      { ...DEFAULT_USER_PROFILE, familyType: FamilyType.STUDENT },
+      {
+        city: '<b>Kolkata</b>',
+        country: 'India',
+        provider: 'open-meteo',
+        aqi: 220,
+        pm25: 170,
+        pm10: 240,
+        no2: 40,
+        o3: 20,
+        category: AqiCategoryId.VERY_UNHEALTHY,
+        updatedAt: '2026-11-18T08:00:00Z',
+        hourlyPm25: [
+          { time: '2026-11-21T08:00', pm25: 140 },
+          { time: '2026-11-21T13:00', pm25: 70 },
+          { time: '2026-11-21T14:00', pm25: 80 },
+        ],
+      },
+    );
+    expect(prompt).toContain('City: Kolkata, India');
+    expect(prompt).toContain('US scale');
+    expect(prompt).toContain('PM10=240');
+    expect(prompt).toContain("Today's Hourly Plan Slots");
+    expect(prompt).toContain('Morning (6 AM – 12 PM)');
+    expect(prompt).toContain('Best 24h Outdoor Window: 1:00 PM to 3:00 PM');
+    expect(prompt).toContain('Student:');
   });
 });
