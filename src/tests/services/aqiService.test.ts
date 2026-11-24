@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  createManualAqiData,
-  fetchAqiDataByCity,
-  fetchAqiDataByCoordinates,
-} from '../../services/aqiService.ts';
+import { createManualAqiData, fetchAqiDataByCity } from '../../services/aqiService.ts';
 import { AqiCategoryId, ErrorCode } from '../../types/index.ts';
 
 describe('aqiService', () => {
@@ -49,7 +45,7 @@ describe('aqiService', () => {
     expect(data.source).toBe('live');
   });
 
-  it('supports coordinate lookups via fetchAqiDataByCoordinates', async () => {
+  it('passes selected city coordinates with city query in fetchAqiDataByCity', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -68,8 +64,11 @@ describe('aqiService', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const data = await fetchAqiDataByCoordinates({ latitude: 28.53, longitude: 77.39 });
-    expect(String(fetchMock.mock.calls[0][0])).toContain('lat=28.53&lon=77.39');
+    const data = await fetchAqiDataByCity('Noida', undefined, {
+      latitude: 28.53,
+      longitude: 77.39,
+    });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('lat=28.53&lon=77.39&city=Noida');
     expect(data.provider).toBe('open-meteo');
     expect(data.category).toBe(AqiCategoryId.UNHEALTHY);
   });

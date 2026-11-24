@@ -17,7 +17,7 @@ import { useCooldown } from './useCooldown.ts';
 
 export type { UseAssistantResult };
 
-/** Orchestrates live/coordinate/manual AQI lookup, cancellation, retry, and cooldown notices. */
+/** Orchestrates live/manual AQI lookup, cancellation, retry, and cooldown notices. */
 export function useAssistant(): UseAssistantResult {
   const [aqiData, setAqiData] = useState<AqiData | null>(null);
   const [assistantResponse, setAssistantResponse] = useState<AssistantResponse | null>(null);
@@ -98,12 +98,6 @@ export function useAssistant(): UseAssistantResult {
     [dispatchWithCooldown],
   );
 
-  const requestRecommendationsByLocation = useCallback(
-    (profile: UserProfile, coordinates: Coordinates): Promise<void> =>
-      dispatchWithCooldown({ mode: 'live', profile, coordinates, useCoordinatesOnly: true }),
-    [dispatchWithCooldown],
-  );
-
   const requestRecommendationsWithManualAqi = useCallback(
     (profile: UserProfile, aqi: number, pm25?: number, pm10?: number): Promise<void> =>
       runRequest({ mode: 'manual', profile, aqi, pm25, pm10 }),
@@ -125,7 +119,6 @@ export function useAssistant(): UseAssistantResult {
     cooldownNotice,
     error,
     requestRecommendations,
-    requestRecommendationsByLocation,
     requestRecommendationsWithManualAqi,
     enableManualAqi,
     retryLastRequest,

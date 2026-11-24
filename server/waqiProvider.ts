@@ -3,7 +3,6 @@
  * Responsibility: Fetch and normalize live AQI payloads (including >500 values) from WAQI feeds.
  * Must not handle Express Request/Response objects or leak API tokens in logs.
  */
-import { APP_TEXT } from '../src/constants/config.ts';
 import { API_ENDPOINTS } from '../src/constants/http.ts';
 import { INPUT_LIMITS } from '../src/constants/limits.ts';
 import { DEFAULT_COUNTRY, SERVER_CONFIG } from '../src/constants/server.ts';
@@ -30,9 +29,9 @@ export interface LiveAqiPayload {
   hourlyPm25?: HourlyPm25Point[];
 }
 
-/** Query parameters accepted by live AQI providers (city name and/or coordinates). */
+/** Query parameters accepted by live AQI providers (city name and optional selected coordinates). */
 export interface AqiLookupTarget {
-  city?: string;
+  city: string;
   coords?: Coordinates;
 }
 
@@ -87,7 +86,7 @@ export async function fetchFromWaqi(
 ): Promise<LiveAqiPayload | null> {
   const feedSegment = target.coords
     ? `geo:${target.coords.latitude};${target.coords.longitude}`
-    : encodeURIComponent(target.city ?? '');
+    : encodeURIComponent(target.city);
   const url = `${API_ENDPOINTS.WAQI_FEED}/${feedSegment}/?token=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(SERVER_CONFIG.PROVIDER_TIMEOUT_MS) });
   const raw = await parseJsonResponse(res, 'WAQI Provider');
@@ -103,14 +102,11 @@ export async function fetchFromWaqi(
   const iaqi = isRecord(raw.data.iaqi) ? raw.data.iaqi : undefined;
   const rawStation = typeof cityObj?.name === 'string' ? cityObj.name : '';
   const stationName = sanitizeText(rawStation, INPUT_LIMITS.MAX_TEXT_LENGTH) || undefined;
-  const candidateCity = sanitizeText(
-    target.city || stationName || '',
-    INPUT_LIMITS.MAX_CITY_LENGTH,
-  );
+  const candidateCity = sanitizeText(target.city, INPUT_LIMITS.MAX_CITY_LENGTH);
   const resolvedCity =
     candidateCity.length >= INPUT_LIMITS.MIN_CITY_LENGTH
       ? candidateCity
-      : APP_TEXT.DEFAULT_LOCATION_CITY;
+      : (stationName ?? target.city);
   const stationCoords = readCoordsPair(cityObj?.geo);
   const pm10 = readNestedMetric(iaqi, 'pm10');
   const locationWarning = buildLocationWarning({

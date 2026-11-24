@@ -8,7 +8,7 @@ import { SensitivityIcon } from '../../components/SensitivityIcon.tsx';
 import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import type { ProfileFieldErrors } from '../../hooks/useProfile.ts';
-import type { CitySearchResult, Coordinates, UserProfile } from '../../types/index.ts';
+import type { CitySearchResult, UserProfile } from '../../types/index.ts';
 import { LocationCard } from './LocationCard.tsx';
 import {
   COMMUTE_MODE_FIELD,
@@ -26,7 +26,6 @@ export interface ProfileFormProps {
   cooldownNotice?: string | null;
   onFieldChange: <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => void;
   onSelectCityResult?: (result: CitySearchResult) => void;
-  onUseCurrentLocation?: (coords: Coordinates) => void;
   onSubmit: () => void;
 }
 
@@ -39,7 +38,6 @@ export function ProfileForm({
   cooldownNotice = null,
   onFieldChange,
   onSelectCityResult,
-  onUseCurrentLocation,
   onSubmit,
 }: ProfileFormProps): ReactElement {
   const cityError = fieldErrors.city;
@@ -59,10 +57,8 @@ export function ProfileForm({
       <LocationCard
         city={profile.city}
         cityError={cityError}
-        isLoading={isLoading}
         onCityChange={(nextCity) => onFieldChange('city', nextCity)}
         onSelectCityResult={onSelectCityResult}
-        onUseCurrentLocation={onUseCurrentLocation}
       />
 
       <SectionCard title={UI_COPY.HOUSEHOLD_CARD_TITLE}>

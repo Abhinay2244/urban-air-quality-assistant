@@ -38,16 +38,6 @@ export const UI_COPY = {
   TODAYS_PLAN_TITLE: "Today's plan",
   TODAYS_PLAN_SUBTITLE: 'Expected PM2.5 and suggested activity by time of day',
   ABOVE_SCALE_NOTE: 'above scale',
-  GEOLOCATION_REQUESTING:
-    'Requesting location permission to find your nearest monitoring station...',
-  GEOLOCATION_DENIED:
-    'Location permission was blocked. Allow location access in your browser site settings (lock or tune icon next to the address bar) and retry, or search and pick your Indian city below.',
-  GEOLOCATION_POSITION_UNAVAILABLE:
-    'Your current position could not be determined by your device or browser. Search and pick your Indian city below instead.',
-  GEOLOCATION_TIMEOUT:
-    'Location lookup timed out. Click Use my location to retry, or search and pick your Indian city below.',
-  GEOLOCATION_UNAVAILABLE:
-    'Browser location is unavailable here. Search and pick your Indian city below instead.',
   CITY_SEARCH_EMPTY: 'No matching Indian cities found. You can still type your city name directly.',
 } as const;
 

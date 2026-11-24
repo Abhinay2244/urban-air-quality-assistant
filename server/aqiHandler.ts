@@ -82,7 +82,7 @@ export async function handleLiveAqiLookup(req: Request, res: Response): Promise<
 
   const rawCity = typeof req.query.city === 'string' ? req.query.city : '';
   const city = sanitizeText(rawCity, INPUT_LIMITS.MAX_CITY_LENGTH);
-  if (!coords && city.length < INPUT_LIMITS.MIN_CITY_LENGTH) {
+  if (city.length < INPUT_LIMITS.MIN_CITY_LENGTH) {
     sendErrorResponse(
       res,
       HTTP_STATUS.BAD_REQUEST,
@@ -92,10 +92,7 @@ export async function handleLiveAqiLookup(req: Request, res: Response): Promise<
     return;
   }
 
-  const target = {
-    ...(city.length >= INPUT_LIMITS.MIN_CITY_LENGTH ? { city } : {}),
-    ...(coords ? { coords } : {}),
-  };
+  const target = coords ? { city, coords } : { city };
 
   try {
     const apiKey = process.env.AQI_API_KEY;
@@ -110,9 +107,7 @@ export async function handleLiveAqiLookup(req: Request, res: Response): Promise<
           : await fetchOpenMeteoHourlyByCity(city);
         res
           .status(HTTP_STATUS.OK)
-          .json(
-            serializeWaqiPayload(waqiResult, extra.hourlyPm25, extra.coords, city || undefined),
-          );
+          .json(serializeWaqiPayload(waqiResult, extra.hourlyPm25, extra.coords, city));
         return;
       }
     }

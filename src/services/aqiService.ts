@@ -51,29 +51,6 @@ export async function fetchAqiDataByCity(
 }
 
 /**
- * Fetches live air quality metrics for browser geolocation coordinates via /api/aqi.
- */
-export async function fetchAqiDataByCoordinates(
-  coords: Coordinates,
-  signal?: AbortSignal,
-): Promise<AqiData> {
-  try {
-    const url = `${API_ENDPOINTS.AQI_LIVE}?lat=${coords.latitude}&lon=${coords.longitude}`;
-    const payload = await fetchJsonOrThrow(
-      url,
-      { signal },
-      ErrorCode.AQI_FETCH_ERROR,
-      ERROR_MESSAGES.AQI_FETCH_FAILED,
-      isLiveAqiPayload,
-    );
-    return normalizeLiveAqiPayload(payload, APP_TEXT.DEFAULT_LOCATION_CITY);
-  } catch (error: unknown) {
-    if (isAbortError(error)) throw error;
-    throw toAppError(error, ErrorCode.AQI_FETCH_ERROR, ERROR_MESSAGES.AQI_FETCH_FAILED);
-  }
-}
-
-/**
  * Creates a validated AqiData object from manual AQI (0–500) and optional PM2.5/PM10 values.
  */
 export function createManualAqiData(

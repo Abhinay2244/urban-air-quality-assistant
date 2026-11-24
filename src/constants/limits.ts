@@ -31,15 +31,3 @@ export const INPUT_LIMITS = {
   SUBMIT_COOLDOWN_SECONDS: 5,
   COOLDOWN_TICK_MS: 1000,
 } as const;
-
-/**
- * Browser Geolocation API options and GeolocationPositionError code constants.
- */
-export const GEOLOCATION_CONFIG = {
-  ENABLE_HIGH_ACCURACY: false,
-  TIMEOUT_MS: 10_000,
-  MAXIMUM_AGE_MS: 300_000,
-  PERMISSION_DENIED_CODE: 1,
-  POSITION_UNAVAILABLE_CODE: 2,
-  TIMEOUT_CODE: 3,
-} as const;

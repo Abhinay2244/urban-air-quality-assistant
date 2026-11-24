@@ -24,19 +24,22 @@ describe('server aqiHandler and providers', () => {
     vi.unstubAllGlobals();
   });
 
-  it('rejects short city names and malformed lat/lon coordinates with 400', async () => {
+  it('rejects short/missing city names and malformed lat/lon coordinates with 400', async () => {
     await withEphemeralServer(createApp, async (baseUrl) => {
-      const cityRes = await getJson(baseUrl, `${API_ENDPOINTS.AQI_LIVE}?city=%3Cb%3EA%3C%2Fb%3E`);
-      expect(cityRes.status).toBe(HTTP_STATUS.BAD_REQUEST);
-      expect(cityRes.body).toMatchObject({ code: ERROR_CODES.VALIDATION_ERROR });
-
-      const coordRes = await getJson(baseUrl, `${API_ENDPOINTS.AQI_LIVE}?lat=999&lon=77.2`);
-      expect(coordRes.status).toBe(HTTP_STATUS.BAD_REQUEST);
-      expect(coordRes.body).toMatchObject({ code: ERROR_CODES.VALIDATION_ERROR });
+      const invalidQueries = [
+        '?city=%3Cb%3EA%3C%2Fb%3E',
+        '?lat=28.61&lon=77.21',
+        '?lat=999&lon=77.2&city=Delhi',
+      ];
+      for (const query of invalidQueries) {
+        const res = await getJson(baseUrl, `${API_ENDPOINTS.AQI_LIVE}${query}`);
+        expect(res.status).toBe(HTTP_STATUS.BAD_REQUEST);
+        expect(res.body).toMatchObject({ code: ERROR_CODES.VALIDATION_ERROR });
+      }
     });
   });
 
-  it('queries WAQI geo feed by coordinates, accepts AQI > 500, and attaches Open-Meteo hourlyPm25', async () => {
+  it('queries WAQI geo feed for selected city coordinates, accepts AQI > 500, and attaches Open-Meteo hourlyPm25', async () => {
     process.env.AQI_API_KEY = 'waqi-secret-token';
     const fetchMock = vi
       .fn()
@@ -59,7 +62,10 @@ describe('server aqiHandler and providers', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await withEphemeralServer(createApp, async (baseUrl) => {
-      const res = await getJson(baseUrl, `${API_ENDPOINTS.AQI_LIVE}?lat=28.61&lon=77.21`);
+      const res = await getJson(
+        baseUrl,
+        `${API_ENDPOINTS.AQI_LIVE}?lat=28.61&lon=77.21&city=Delhi`,
+      );
       expect(res.status).toBe(HTTP_STATUS.OK);
       expect(String(fetchMock.mock.calls[0][0])).toContain('/geo:28.61;77.21/');
       expect(res.body).toMatchObject({

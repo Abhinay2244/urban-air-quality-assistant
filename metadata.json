@@ -1,6 +1,5 @@
 {
   "name": "Urban Air Quality Assistant",
   "description": "GenAI-powered urban air quality assistant helping families and communities reduce winter smog exposure with tailored routines and indoor air strategies.",
-  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

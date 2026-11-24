@@ -3,22 +3,16 @@ import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_TEXT, DEFAULT_USER_PROFILE, UI_LABELS } from '../../constants/config.ts';
 import { ERROR_MESSAGES } from '../../constants/http.ts';
-import { UI_COPY } from '../../constants/uiTheme.ts';
 import { ProfileForm } from '../../features/profile/ProfileForm.tsx';
 import { useProfile } from '../../hooks/useProfile.ts';
-import type { CitySearchResult, Coordinates, UserProfile } from '../../types/index.ts';
+import type { CitySearchResult, UserProfile } from '../../types/index.ts';
 
 interface HarnessProps {
   onSubmitValid: (profile: UserProfile) => void;
   onSelectCityResult?: (result: CitySearchResult) => void;
-  onUseCurrentLocation?: (coords: Coordinates) => void;
 }
 
-function ProfileFormHarness({
-  onSubmitValid,
-  onSelectCityResult,
-  onUseCurrentLocation,
-}: HarnessProps): ReactElement {
+function ProfileFormHarness({ onSubmitValid, onSelectCityResult }: HarnessProps): ReactElement {
   const { profile, fieldErrors, updateField, validateProfile } = useProfile();
 
   const handleSubmit = (): void => {
@@ -34,7 +28,6 @@ function ProfileFormHarness({
       cooldownSeconds={0}
       onFieldChange={updateField}
       onSelectCityResult={onSelectCityResult}
-      onUseCurrentLocation={onUseCurrentLocation}
       onSubmit={handleSubmit}
     />
   );
@@ -46,7 +39,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('ProfileForm and India city search / geolocation', () => {
+describe('ProfileForm and India city search', () => {
   it('shows inline error with aria-invalid and aria-describedby for invalid city', () => {
     const onSubmitValid = vi.fn();
     render(<ProfileFormHarness onSubmitValid={onSubmitValid} />);
@@ -104,29 +97,5 @@ describe('ProfileForm and India city search / geolocation', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: APP_TEXT.SUBMIT_LABEL }));
     expect(onSubmitValid).toHaveBeenCalledWith({ ...DEFAULT_USER_PROFILE, city: 'Noida' });
-  });
-
-  it('handles Use my location permission grant and denied fallback cleanly', () => {
-    const onUseCurrentLocation = vi.fn();
-    const getCurrentPosition = vi
-      .fn()
-      .mockImplementationOnce((_ok: PositionCallback, err: PositionErrorCallback) =>
-        err({ code: 1 } as GeolocationPositionError),
-      )
-      .mockImplementationOnce((ok: PositionCallback) =>
-        ok({ coords: { latitude: 28.61, longitude: 77.21 } } as GeolocationPosition),
-      );
-    vi.stubGlobal('navigator', { geolocation: { getCurrentPosition } });
-
-    render(
-      <ProfileFormHarness onSubmitValid={vi.fn()} onUseCurrentLocation={onUseCurrentLocation} />,
-    );
-    const geoBtn = screen.getByRole('button', { name: UI_LABELS.USE_MY_LOCATION_LABEL });
-
-    fireEvent.click(geoBtn);
-    expect(screen.getByRole('status')).toHaveTextContent(UI_COPY.GEOLOCATION_DENIED);
-
-    fireEvent.click(geoBtn);
-    expect(onUseCurrentLocation).toHaveBeenCalledWith({ latitude: 28.61, longitude: 77.21 });
   });
 });

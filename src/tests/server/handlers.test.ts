@@ -66,7 +66,7 @@ describe('server geminiHandler and upstream error mapping', () => {
     });
   });
 
-  it('accepts coordinate-based AQI payloads with digits/parentheses and optional fields omitted', async () => {
+  it('accepts city AQI payloads with digits/parentheses in stationName and optional fields omitted', async () => {
     delete process.env.GEMINI_API_KEY;
     const postRecommendations = (
       baseUrl: string,
@@ -76,14 +76,14 @@ describe('server geminiHandler and upstream error mapping', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          profile: { ...DEFAULT_USER_PROFILE, city: 'Current location' },
+          profile: { ...DEFAULT_USER_PROFILE, city: 'Delhi' },
           aqiData,
         }),
       });
 
     await withEphemeralServer(createApp, async (baseUrl) => {
       const withExtras = await postRecommendations(baseUrl, {
-        city: 'Current location',
+        city: 'Delhi',
         country: 'India',
         stationName: 'R K Puram (Sector 2), Station 14',
         aqi: 175,
@@ -93,7 +93,7 @@ describe('server geminiHandler and upstream error mapping', () => {
         category: AqiCategoryId.UNHEALTHY,
       });
       const omittedOptional = await postRecommendations(baseUrl, {
-        city: 'Current location',
+        city: 'Delhi',
         country: 'India',
         aqi: 120,
         pm25: 45,

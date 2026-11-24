@@ -3,7 +3,6 @@
  * Responsibility: Validate and normalize raw JSON responses from /api/aqi into typed AqiData.
  * Must not invoke fetch, manage UI state, or throw raw syntax errors.
  */
-import { APP_TEXT } from '../constants/config.ts';
 import { INPUT_LIMITS } from '../constants/limits.ts';
 import { DEFAULT_COUNTRY } from '../constants/server.ts';
 import type { AqiData, AqiProvider, HourlyPm25Point } from '../types/index.ts';
@@ -41,11 +40,9 @@ function readOptionalFinite(raw: unknown): number | undefined {
 function resolveCityName(rawCity: unknown, fallbackCity: string): string {
   const cleanCity =
     typeof rawCity === 'string' ? sanitizeText(rawCity, INPUT_LIMITS.MAX_CITY_LENGTH) : '';
-  if (cleanCity.length >= INPUT_LIMITS.MIN_CITY_LENGTH) return cleanCity;
-  const cleanFallback = sanitizeText(fallbackCity, INPUT_LIMITS.MAX_CITY_LENGTH);
-  return cleanFallback.length >= INPUT_LIMITS.MIN_CITY_LENGTH
-    ? cleanFallback
-    : APP_TEXT.DEFAULT_LOCATION_CITY;
+  return cleanCity.length >= INPUT_LIMITS.MIN_CITY_LENGTH
+    ? cleanCity
+    : sanitizeText(fallbackCity, INPUT_LIMITS.MAX_CITY_LENGTH);
 }
 
 /** Normalizes a validated /api/aqi response payload into AqiData without capping live AQI > 500. */

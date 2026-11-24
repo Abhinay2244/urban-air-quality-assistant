@@ -8,14 +8,14 @@ A GenAI-powered web application that helps urban households across India navigat
 
 ## Approach & Logic
 
-1. **Location & Profile Resolution**: `useProfile` validates household attributes (`familyType` including `Working professional` and `Student`, sensitivity flags, `commuteMode`, `homeType`). `LocationCard` offers **India-only city search** (`GET /api/cities?q=...` powered by Open-Meteo Geocoding with `countryCode=IN`) plus a **"Use my location"** Geolocation API flow with explicit permission status and graceful fallback.
-2. **Live AQI Proxy & Integrity**: `GET /api/aqi` accepts either a city name or `lat`/`lon` coordinates, tries **WAQI** (`geo:lat;lon` or city feed) when `AQI_API_KEY` is configured while enriching with Open-Meteo 24-hour hourly PM2.5, or falls back directly to **Open-Meteo Air Quality** (`us_aqi`, `pm2_5`, `pm10`, `nitrogen_dioxide`, `ozone`, `hourly=pm2_5`). Raw live AQI readings above `500` are preserved without rejection, classified as **Hazardous**, and tagged `"above scale"`. Stations outside India or >50 km from the requested city/coordinates trigger a visible warning banner. If live lookup fails, `ManualAqiForm` accepts AQI (`0–500`) and optional PM2.5/PM10 and labels outputs `"Manual entry"`.
+1. **Location & Profile Resolution**: `useProfile` validates household attributes (`familyType` including `Working professional` and `Student`, sensitivity flags, `commuteMode`, `homeType`). `LocationCard` offers **India-only city search** (`GET /api/cities?q=...` powered by Open-Meteo Geocoding with `countryCode=IN`) alongside direct city entry.
+2. **Live AQI Proxy & Integrity**: `GET /api/aqi` requires a validated city name (with optional `lat`/`lon` coordinates when picked from Indian city suggestions), tries **WAQI** (`geo:lat;lon` or city feed) when `AQI_API_KEY` is configured while enriching with Open-Meteo 24-hour hourly PM2.5, or falls back directly to **Open-Meteo Air Quality** (`us_aqi`, `pm2_5`, `pm10`, `nitrogen_dioxide`, `ozone`, `hourly=pm2_5`). Raw live AQI readings above `500` are preserved without rejection, classified as **Hazardous**, and tagged `"above scale"`. Stations outside India or >50 km from the requested city trigger a visible warning banner. If live lookup fails, `ManualAqiForm` accepts AQI (`0–500`) and optional PM2.5/PM10 and labels outputs `"Manual entry"`.
 3. **Structured Gemini Generation**: `POST /api/assistant/recommendations` validates profile and `AqiData` payloads on the server, builds a deterministic prompt (`buildAssistantPrompt`) including Morning/Afternoon/Evening slots from **Today's plan** and explicitly instructs Gemini (`gemini-4-hydrogen`) that AQI, PM2.5, and PM10 are authoritative provided values that must never be invented or altered.
 4. **Deterministic US EPA Urgency Layer**: `applyUrgencyRules` evaluates readings on the **AQI (US scale, as reported by WAQI and Open-Meteo)**: stay-indoors + fitted N95/KF94 `HEALTH_ALERT` priority starts at **101** (`Unhealthy for Sensitive Groups`) for households with children, older adults, or respiratory sensitivities, and at **151** (`Unhealthy`) for all households.
 
 ```mermaid
 flowchart LR
-  A[Profile + India City Search / Geolocation] --> B{Live AQI Lookup<br/>/api/aqi}
+  A[Profile + India City Search] --> B{Live AQI Lookup<br/>/api/aqi}
   B -->|WAQI / Open-Meteo OK| D[Validated US-Scale AqiData + Station + 24h PM2.5]
   B -->|Unavailable| C[ManualAqiForm Fallback<br/>Manual entry]
   C --> D
@@ -32,7 +32,7 @@ flowchart LR
 - **US EPA AQI Gauge & Data Transparency**: Circular gauge colored by **AQI (US scale, as reported by WAQI and Open-Meteo)** (`Good` 0–50, `Moderate` 51–100, `Unhealthy for Sensitive Groups` 101–150, `Unhealthy` 151–200, `Very Unhealthy` 201–300, `Hazardous` 301–500, plus `>500` live readings treated as Hazardous with an `"above scale"` note). Always shows the station or place name, timestamp, source (`Live WAQI`, `Live Open-Meteo`, or `Manual entry`), and any non-India / distance warning.
 - **PM2.5 & PM10 vs. WHO 24h Guidelines**: Displays PM2.5 alongside `15.0 ug/m3` WHO 24h guideline and optional PM10 alongside `45.0 ug/m3` WHO 24h guideline, including manual optional PM2.5 and PM10 fields.
 - **Today's Plan & Best Outdoor Window**: When hourly PM2.5 data is present, renders **Today's plan** (**Morning** 6 AM–12 PM, **Afternoon** 12 PM–5 PM, **Evening** 5 PM–10 PM) with expected PM2.5 and tailored action alongside the **Best time for outdoor activity** 2-hour window, and passes the slots to Gemini.
-- **Location Controls**: `"Use my location"` (Geolocation API with clear permission messaging and fallback) and India-only city search (`countryCode=IN`), keeping Delhi, Noida, Mumbai, Kolkata, and smaller Indian towns reliable.
+- **India-Only City Search**: Autocomplete powered by Open-Meteo Geocoding (`countryCode=IN`), keeping Delhi, Noida, Mumbai, Kolkata, and smaller Indian towns reliable.
 - **Personas & Indian-Home Guidance**: Covers parents/children, seniors, working professionals, and **Student** outdoor sports/activity planning, plus wet mopping, clean-window ventilation timing, room-sized HEPA CADR, minor houseplant caveat, and low-cost DIY options. See `docs/SAMPLE_INPUTS.md` for walkthrough profiles.
 
 ## Architecture & Folder Structure

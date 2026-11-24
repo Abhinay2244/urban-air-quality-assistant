@@ -28,7 +28,6 @@ export default function App(): ReactElement {
     cooldownNotice,
     error,
     requestRecommendations,
-    requestRecommendationsByLocation,
     requestRecommendationsWithManualAqi,
     enableManualAqi,
     retryLastRequest,
@@ -52,12 +51,6 @@ export default function App(): ReactElement {
       city: item.name,
       coords: { latitude: item.latitude, longitude: item.longitude },
     });
-  };
-
-  const handleUseCurrentLocation = (coords: Coordinates): void => {
-    setSelectedCoords(null);
-    clearValidationError();
-    void requestRecommendationsByLocation(profile, coords);
   };
 
   const handleSubmit = (): void => {
@@ -111,7 +104,6 @@ export default function App(): ReactElement {
               cooldownNotice={cooldownNotice}
               onFieldChange={handleFieldChange}
               onSelectCityResult={handleSelectCityResult}
-              onUseCurrentLocation={handleUseCurrentLocation}
               onSubmit={handleSubmit}
             />
           </div>
