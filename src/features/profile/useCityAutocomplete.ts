@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { INPUT_LIMITS } from '../../constants/limits.ts';
+import { GEOLOCATION_CONFIG, INPUT_LIMITS } from '../../constants/limits.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import { searchIndianCitiesClient } from '../../services/citySearchService.ts';
 import type { CitySearchResult, Coordinates } from '../../types/index.ts';
@@ -17,7 +17,14 @@ export interface UseCityAutocompleteResult {
   requestBrowserLocation: (onCoords: (coords: Coordinates) => void) => void;
 }
 
-const GEO_PERMISSION_DENIED_CODE = 1;
+function resolveGeolocationErrorMessage(code: number): string {
+  if (code === GEOLOCATION_CONFIG.PERMISSION_DENIED_CODE) return UI_COPY.GEOLOCATION_DENIED;
+  if (code === GEOLOCATION_CONFIG.POSITION_UNAVAILABLE_CODE) {
+    return UI_COPY.GEOLOCATION_POSITION_UNAVAILABLE;
+  }
+  if (code === GEOLOCATION_CONFIG.TIMEOUT_CODE) return UI_COPY.GEOLOCATION_TIMEOUT;
+  return UI_COPY.GEOLOCATION_UNAVAILABLE;
+}
 
 /**
  * Manages debounced India-only city suggestions via /api/cities and Geolocation API state.
@@ -95,13 +102,13 @@ export function useCityAutocomplete(): UseCityAutocompleteResult {
       },
       (geoError) => {
         setIsLocating(false);
-        setGeoMessage(
-          geoError.code === GEO_PERMISSION_DENIED_CODE
-            ? UI_COPY.GEOLOCATION_DENIED
-            : UI_COPY.GEOLOCATION_UNAVAILABLE,
-        );
+        setGeoMessage(resolveGeolocationErrorMessage(geoError.code));
       },
-      { timeout: INPUT_LIMITS.GEOLOCATION_TIMEOUT_MS },
+      {
+        enableHighAccuracy: GEOLOCATION_CONFIG.ENABLE_HIGH_ACCURACY,
+        timeout: GEOLOCATION_CONFIG.TIMEOUT_MS,
+        maximumAge: GEOLOCATION_CONFIG.MAXIMUM_AGE_MS,
+      },
     );
   }, []);
 

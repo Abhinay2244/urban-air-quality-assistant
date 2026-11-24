@@ -130,7 +130,7 @@ export function validateAqiData(data: unknown): data is AqiData {
     v === undefined || isBoundedFinite(v, Number.MAX_SAFE_INTEGER);
   return (
     typeof data.city === 'string' &&
-    data.city.trim().length > 0 &&
+    sanitizeText(data.city, INPUT_LIMITS.MAX_CITY_LENGTH).length > 0 &&
     typeof data.country === 'string' &&
     optText(data.stationName) &&
     (data.provider === undefined || data.provider === 'waqi' || data.provider === 'open-meteo') &&
@@ -138,9 +138,9 @@ export function validateAqiData(data: unknown): data is AqiData {
     isBoundedFinite(data.aqi, Number.MAX_SAFE_INTEGER) &&
     isBoundedFinite(data.pm25, Number.MAX_SAFE_INTEGER) &&
     optNum(data.pm10) &&
-    isBoundedFinite(data.no2, Number.MAX_SAFE_INTEGER) &&
-    isBoundedFinite(data.o3, Number.MAX_SAFE_INTEGER) &&
-    typeof data.updatedAt === 'string' &&
+    optNum(data.no2) &&
+    optNum(data.o3) &&
+    optText(data.updatedAt) &&
     isOneOf(data.category, Object.values(AqiCategoryId)) &&
     (data.hourlyPm25 === undefined || isHourlyPm25Array(data.hourlyPm25))
   );

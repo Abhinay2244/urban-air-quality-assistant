@@ -66,7 +66,7 @@ export async function fetchAqiDataByCoordinates(
       ERROR_MESSAGES.AQI_FETCH_FAILED,
       isLiveAqiPayload,
     );
-    return normalizeLiveAqiPayload(payload, 'Current location');
+    return normalizeLiveAqiPayload(payload, APP_TEXT.DEFAULT_LOCATION_CITY);
   } catch (error: unknown) {
     if (isAbortError(error)) throw error;
     throw toAppError(error, ErrorCode.AQI_FETCH_ERROR, ERROR_MESSAGES.AQI_FETCH_FAILED);

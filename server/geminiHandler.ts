@@ -5,6 +5,7 @@
  */
 import { GoogleGenAI, Type, type Schema } from '@google/genai';
 import type { Request, Response } from 'express';
+import { APP_TEXT } from '../src/constants/config.ts';
 import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
 import {
   ASSISTANT_SCHEMA_DESCRIPTIONS,
@@ -12,6 +13,7 @@ import {
 } from '../src/constants/prompts.ts';
 import { GEMINI_CONFIG } from '../src/constants/server.ts';
 import { buildAssistantPrompt } from '../src/utils/promptBuilder.ts';
+import { sanitizeAqiData } from '../src/utils/sanitizing.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { validateAqiData, validateUserProfile } from '../src/utils/validation.ts';
 import { logServerError, mapGeminiUpstreamError, sendErrorResponse } from './errorResponse.ts';
@@ -92,9 +94,10 @@ export async function handleAssistantRecommendations(req: Request, res: Response
       httpOptions: { headers: { 'User-Agent': GEMINI_CONFIG.USER_AGENT } },
     });
 
+    const sanitizedAqi = sanitizeAqiData(req.body.aqiData, APP_TEXT.DEFAULT_LOCATION_CITY);
     const response = await ai.models.generateContent({
       model: GEMINI_CONFIG.MODEL,
-      contents: buildAssistantPrompt(profileResult.value, req.body.aqiData),
+      contents: buildAssistantPrompt(profileResult.value, sanitizedAqi),
       config: {
         systemInstruction: ASSISTANT_SYSTEM_INSTRUCTION,
         responseMimeType: GEMINI_CONFIG.RESPONSE_MIME_TYPE,

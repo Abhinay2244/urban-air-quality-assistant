@@ -4,10 +4,12 @@
  * Must not handle Express Request/Response objects or leak API tokens in logs.
  */
 import { INDIA_GEO_BOUNDS } from '../src/constants/aqi.ts';
+import { APP_TEXT } from '../src/constants/config.ts';
 import { API_ENDPOINTS } from '../src/constants/http.ts';
 import { INPUT_LIMITS } from '../src/constants/limits.ts';
 import { DEFAULT_COUNTRY, SERVER_CONFIG } from '../src/constants/server.ts';
 import { buildLocationWarning } from '../src/utils/locationValidation.ts';
+import { sanitizeText } from '../src/utils/sanitizing.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { parseHourlyPm25 } from './hourlyForecastProvider.ts';
 import {
@@ -22,7 +24,7 @@ export async function fetchFromOpenMeteo(
   target: AqiLookupTarget,
 ): Promise<LiveAqiPayload | 'not_found' | null> {
   let coords = target.coords;
-  let resolvedCity = target.city ?? 'Current location';
+  let resolvedCity = target.city ?? APP_TEXT.DEFAULT_LOCATION_CITY;
   let country: string = coords ? INDIA_GEO_BOUNDS.COUNTRY_NAME : DEFAULT_COUNTRY;
   let countryCode: string | undefined;
 
@@ -62,9 +64,15 @@ export async function fetchFromOpenMeteo(
 
   const pm10 = readFiniteMetric(current, 'pm10');
   const hourlyPm25 = parseHourlyPm25(aqiRaw);
-  const stationName = `${resolvedCity} (${coords.latitude.toFixed(2)}, ${coords.longitude.toFixed(2)})`;
+  const cleanCity = sanitizeText(resolvedCity, INPUT_LIMITS.MAX_CITY_LENGTH);
+  const safeCity =
+    cleanCity.length >= INPUT_LIMITS.MIN_CITY_LENGTH ? cleanCity : APP_TEXT.DEFAULT_LOCATION_CITY;
+  const stationName = sanitizeText(
+    `${safeCity} (${coords.latitude.toFixed(2)}, ${coords.longitude.toFixed(2)})`,
+    INPUT_LIMITS.MAX_TEXT_LENGTH,
+  );
   const locationWarning = buildLocationWarning({
-    resolvedPlace: country !== DEFAULT_COUNTRY ? `${resolvedCity}, ${country}` : stationName,
+    resolvedPlace: country !== DEFAULT_COUNTRY ? `${safeCity}, ${country}` : stationName,
     country,
     countryCode,
     stationCoords: coords,
@@ -73,7 +81,7 @@ export async function fetchFromOpenMeteo(
   });
 
   return {
-    city: resolvedCity,
+    city: safeCity,
     country,
     stationName,
     provider: 'open-meteo',

@@ -101,10 +101,10 @@ export interface AqiData {
   aqi: number;
   pm25: number;
   pm10?: number;
-  no2: number;
-  o3: number;
+  no2?: number;
+  o3?: number;
   category: AqiCategoryId;
-  updatedAt: string;
+  updatedAt?: string;
   hourlyPm25?: HourlyPm25Point[];
   source?: 'live' | 'manual';
 }

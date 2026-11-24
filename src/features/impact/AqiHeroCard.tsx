@@ -100,7 +100,7 @@ export function AqiHeroCard({
             </span>
           </span>
           <span className="text-sm text-slate-600 dark:text-slate-400">
-            {formatTimestamp(aqiData.updatedAt)}
+            {aqiData.updatedAt ? formatTimestamp(aqiData.updatedAt) : APP_TEXT.NOT_AVAILABLE}
           </span>
         </div>
 

@@ -66,10 +66,53 @@ describe('server geminiHandler and upstream error mapping', () => {
     });
   });
 
+  it('accepts coordinate-based AQI payloads with digits/parentheses and optional fields omitted', async () => {
+    delete process.env.GEMINI_API_KEY;
+    const postRecommendations = (
+      baseUrl: string,
+      aqiData: Record<string, unknown>,
+    ): Promise<Response> =>
+      fetch(`${baseUrl}${API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: { ...DEFAULT_USER_PROFILE, city: 'Current location' },
+          aqiData,
+        }),
+      });
+
+    await withEphemeralServer(createApp, async (baseUrl) => {
+      const withExtras = await postRecommendations(baseUrl, {
+        city: 'Current location',
+        country: 'India',
+        stationName: 'R K Puram (Sector 2), Station 14',
+        aqi: 175,
+        pm25: 98,
+        no2: 42,
+        o3: 31,
+        category: AqiCategoryId.UNHEALTHY,
+      });
+      const omittedOptional = await postRecommendations(baseUrl, {
+        city: 'Current location',
+        country: 'India',
+        aqi: 120,
+        pm25: 45,
+        category: AqiCategoryId.UNHEALTHY_SENSITIVE,
+      });
+
+      expect(withExtras.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      expect(omittedOptional.status).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    });
+  });
+
   it('maps known upstream Gemini error statuses to safe user messages without raw details', () => {
     expect(mapGeminiUpstreamError({ status: 403 })).toEqual({
       status: HTTP_STATUS.BAD_GATEWAY,
       message: ERROR_MESSAGES.AI_AUTH_ERROR,
+    });
+    expect(mapGeminiUpstreamError({ status: 400 })).toEqual({
+      status: HTTP_STATUS.BAD_REQUEST,
+      message: ERROR_MESSAGES.INVALID_AI_REQUEST,
     });
     expect(mapGeminiUpstreamError({ status: 429 })).toEqual({
       status: HTTP_STATUS.TOO_MANY_REQUESTS,

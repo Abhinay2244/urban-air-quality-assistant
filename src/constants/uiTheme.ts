@@ -41,9 +41,13 @@ export const UI_COPY = {
   GEOLOCATION_REQUESTING:
     'Requesting location permission to find your nearest monitoring station...',
   GEOLOCATION_DENIED:
-    'Location access was denied. No problem — search and pick your Indian city below instead.',
+    'Location permission was blocked. Allow location access in your browser site settings (lock or tune icon next to the address bar) and retry, or search and pick your Indian city below.',
+  GEOLOCATION_POSITION_UNAVAILABLE:
+    'Your current position could not be determined by your device or browser. Search and pick your Indian city below instead.',
+  GEOLOCATION_TIMEOUT:
+    'Location lookup timed out. Click Use my location to retry, or search and pick your Indian city below.',
   GEOLOCATION_UNAVAILABLE:
-    'Browser location services are unavailable or timed out. Pick your Indian city below.',
+    'Browser location is unavailable here. Search and pick your Indian city below instead.',
   CITY_SEARCH_EMPTY: 'No matching Indian cities found. You can still type your city name directly.',
 } as const;
 

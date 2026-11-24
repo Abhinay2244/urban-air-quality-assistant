@@ -34,7 +34,10 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
   const [validationError, setValidationError] = useState<AppError | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
 
-  const clearValidationError = useCallback((): void => setValidationError(null), []);
+  const clearValidationError = useCallback((): void => {
+    setValidationError(null);
+    setFieldErrors({});
+  }, []);
 
   const updateField = useCallback(
     <K extends keyof UserProfile>(field: K, value: UserProfile[K]): void => {

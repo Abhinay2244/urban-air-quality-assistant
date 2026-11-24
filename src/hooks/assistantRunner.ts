@@ -3,7 +3,9 @@
  * Responsibility: Execute live (city or coordinates) and manual AQI + recommendation resolution steps.
  * Must not hold React state, manage cooldown timers, or render UI components.
  */
+import { APP_TEXT } from '../constants/config.ts';
 import { ERROR_MESSAGES } from '../constants/http.ts';
+import { INPUT_LIMITS } from '../constants/limits.ts';
 import { UI_COPY } from '../constants/uiTheme.ts';
 import {
   createManualAqiData,
@@ -21,6 +23,7 @@ import {
   type UserProfile,
 } from '../types/index.ts';
 import { toAppError } from '../utils/errors.ts';
+import { sanitizeText } from '../utils/sanitizing.ts';
 import { applyUrgencyRules } from '../utils/urgencyRules.ts';
 
 /** Last executed recommendation request parameters used for mode-preserving retry. */
@@ -62,6 +65,13 @@ export function formatCooldownNotice(cooldownSeconds: number): string {
   return `${UI_COPY.COOLDOWN_NOTICE_PREFIX} ${cooldownSeconds} ${unit}`;
 }
 
+function resolveCoordinateCity(city: string): string {
+  const cleanCity = sanitizeText(city, INPUT_LIMITS.MAX_CITY_LENGTH);
+  return cleanCity.length >= INPUT_LIMITS.MIN_CITY_LENGTH
+    ? cleanCity
+    : APP_TEXT.DEFAULT_LOCATION_CITY;
+}
+
 /**
  * Resolves AQI data (by city, coordinates, or manual entry) and fetches urgency-ranked AI recommendations.
  */
@@ -96,15 +106,18 @@ export async function executeAssistantRequest(
   }
 
   if (signal.aborted) return {};
-  onResolvedAqi(resolvedAqi);
+  const isCoordLookup = req.mode === 'live' && Boolean(req.useCoordinatesOnly);
+  const normalizedCity = isCoordLookup ? resolveCoordinateCity(resolvedAqi.city) : resolvedAqi.city;
+  const normalizedAqi =
+    normalizedCity === resolvedAqi.city ? resolvedAqi : { ...resolvedAqi, city: normalizedCity };
+  onResolvedAqi(normalizedAqi);
 
   try {
-    const profileForAi: UserProfile =
-      req.mode === 'live' && req.useCoordinatesOnly
-        ? { ...req.profile, city: resolvedAqi.city }
-        : req.profile;
-    const rawResponse = await getAirQualityRecommendations(profileForAi, resolvedAqi, signal);
-    return { response: applyUrgencyRules(rawResponse, profileForAi, resolvedAqi) };
+    const profileForAi: UserProfile = isCoordLookup
+      ? { ...req.profile, city: normalizedAqi.city }
+      : req.profile;
+    const rawResponse = await getAirQualityRecommendations(profileForAi, normalizedAqi, signal);
+    return { response: applyUrgencyRules(rawResponse, profileForAi, normalizedAqi) };
   } catch (err: unknown) {
     if (signal.aborted || isAbortError(err)) throw err;
     return {

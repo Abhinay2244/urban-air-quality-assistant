@@ -64,7 +64,7 @@ export function buildAssistantPrompt(profile: UserProfile, aqiData: AqiData): st
     'Use the authoritative provided US-scale AQI and pollutant values below without altering or inventing metrics:',
     `City: ${safeCity}, ${safeCountry} (Source: ${buildSourceNote(aqiData)})`,
     `Provided AQI (US scale, as reported by WAQI and Open-Meteo): ${Math.round(aqiData.aqi)} (${aqiData.category})`,
-    `Provided Pollutants (ug/m3): PM2.5=${aqiData.pm25}, ${pm10Segment}, NO2=${aqiData.no2}, O3=${aqiData.o3}`,
+    `Provided Pollutants (ug/m3): PM2.5=${aqiData.pm25}, ${pm10Segment}, NO2=${aqiData.no2 ?? 0}, O3=${aqiData.o3 ?? 0}`,
     `Family Type: ${profile.familyType}`,
     `Has Children: ${profile.hasChildren}`,
     `Has Elderly: ${profile.hasElderly}`,

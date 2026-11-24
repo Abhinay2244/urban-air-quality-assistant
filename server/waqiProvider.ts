@@ -3,10 +3,13 @@
  * Responsibility: Fetch and normalize live AQI payloads (including >500 values) from WAQI feeds.
  * Must not handle Express Request/Response objects or leak API tokens in logs.
  */
+import { APP_TEXT } from '../src/constants/config.ts';
 import { API_ENDPOINTS } from '../src/constants/http.ts';
+import { INPUT_LIMITS } from '../src/constants/limits.ts';
 import { DEFAULT_COUNTRY, SERVER_CONFIG } from '../src/constants/server.ts';
 import type { AqiProvider, Coordinates, HourlyPm25Point } from '../src/types/index.ts';
 import { buildLocationWarning } from '../src/utils/locationValidation.ts';
+import { sanitizeText } from '../src/utils/sanitizing.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { logServerError } from './errorResponse.ts';
 
@@ -98,21 +101,29 @@ export async function fetchFromWaqi(
   const cityObj = isRecord(raw.data.city) ? raw.data.city : undefined;
   const timeObj = isRecord(raw.data.time) ? raw.data.time : undefined;
   const iaqi = isRecord(raw.data.iaqi) ? raw.data.iaqi : undefined;
-  const stationName =
-    typeof cityObj?.name === 'string' ? cityObj.name : (target.city ?? 'Nearest station');
+  const rawStation = typeof cityObj?.name === 'string' ? cityObj.name : '';
+  const stationName = sanitizeText(rawStation, INPUT_LIMITS.MAX_TEXT_LENGTH) || undefined;
+  const candidateCity = sanitizeText(
+    target.city || stationName || '',
+    INPUT_LIMITS.MAX_CITY_LENGTH,
+  );
+  const resolvedCity =
+    candidateCity.length >= INPUT_LIMITS.MIN_CITY_LENGTH
+      ? candidateCity
+      : APP_TEXT.DEFAULT_LOCATION_CITY;
   const stationCoords = readCoordsPair(cityObj?.geo);
   const pm10 = readNestedMetric(iaqi, 'pm10');
   const locationWarning = buildLocationWarning({
-    resolvedPlace: stationName,
+    resolvedPlace: stationName ?? resolvedCity,
     stationCoords,
     requestedCoords: target.coords,
     requestedLabel: target.city,
   });
 
   return {
-    city: target.city || stationName,
+    city: resolvedCity,
     country: DEFAULT_COUNTRY,
-    stationName,
+    ...(stationName ? { stationName } : {}),
     provider: 'waqi',
     ...(locationWarning ? { locationWarning } : {}),
     ...(stationCoords ? { stationCoords } : {}),

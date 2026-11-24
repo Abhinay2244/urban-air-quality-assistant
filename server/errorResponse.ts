@@ -39,15 +39,21 @@ export function isTimeoutError(error: unknown): boolean {
  * Maps known Gemini SDK/HTTP upstream error conditions to safe HTTP status and user messages.
  */
 export function mapGeminiUpstreamError(error: unknown): { status: number; message: string } {
-  if (isTimeoutError(error)) {
+  const status = isRecord(error) && typeof error.status === 'number' ? error.status : undefined;
+  const rawMessage = error instanceof Error ? error.message : '';
+  const lowerMessage = rawMessage.toLowerCase();
+
+  if (
+    isTimeoutError(error) ||
+    status === HTTP_STATUS.REQUEST_TIMEOUT ||
+    status === HTTP_STATUS.GATEWAY_TIMEOUT ||
+    lowerMessage.includes('timed out') ||
+    lowerMessage.includes('timeout')
+  ) {
     return { status: HTTP_STATUS.GATEWAY_TIMEOUT, message: ERROR_MESSAGES.UPSTREAM_TIMEOUT };
   }
 
-  const status = isRecord(error) && typeof error.status === 'number' ? error.status : undefined;
-  const rawMessage = error instanceof Error ? error.message : '';
-
   if (
-    status === HTTP_STATUS.BAD_REQUEST ||
     status === HTTP_STATUS.FORBIDDEN ||
     rawMessage.includes('API_KEY_INVALID') ||
     rawMessage.includes('PERMISSION_DENIED')
@@ -55,7 +61,15 @@ export function mapGeminiUpstreamError(error: unknown): { status: number; messag
     return { status: HTTP_STATUS.BAD_GATEWAY, message: ERROR_MESSAGES.AI_AUTH_ERROR };
   }
 
-  if (status === HTTP_STATUS.TOO_MANY_REQUESTS || rawMessage.includes('RESOURCE_EXHAUSTED')) {
+  if (status === HTTP_STATUS.BAD_REQUEST || rawMessage.includes('INVALID_ARGUMENT')) {
+    return { status: HTTP_STATUS.BAD_REQUEST, message: ERROR_MESSAGES.INVALID_AI_REQUEST };
+  }
+
+  if (
+    status === HTTP_STATUS.TOO_MANY_REQUESTS ||
+    rawMessage.includes('RESOURCE_EXHAUSTED') ||
+    lowerMessage.includes('quota')
+  ) {
     return { status: HTTP_STATUS.TOO_MANY_REQUESTS, message: ERROR_MESSAGES.AI_QUOTA_EXCEEDED };
   }
 

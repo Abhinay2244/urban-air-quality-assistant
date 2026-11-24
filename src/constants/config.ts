@@ -22,6 +22,7 @@ export const APP_TEXT = {
   MANUAL_AQI_NOTICE:
     'Live air quality lookup failed or is overridden. Enter your local AQI reading below; results will be labeled as manual entry.',
   MANUAL_AQI_SOURCE_LABEL: 'Manual entry',
+  DEFAULT_LOCATION_CITY: 'Current location',
   LIVE_AQI_SOURCE_LABEL: 'Live reading',
   LIVE_WAQI_SOURCE_LABEL: 'Live WAQI',
   LIVE_OPEN_METEO_SOURCE_LABEL: 'Live Open-Meteo',

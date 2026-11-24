@@ -25,6 +25,7 @@ export const HTTP_STATUS = {
   BAD_REQUEST: 400,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  REQUEST_TIMEOUT: 408,
   PAYLOAD_TOO_LARGE: 413,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
@@ -64,6 +65,8 @@ export const ERROR_MESSAGES = {
   AI_AUTH_ERROR: 'Gemini API key was rejected. Check Settings > Secrets in AI Studio.',
   AI_QUOTA_EXCEEDED: 'Gemini API quota exceeded. Please try again shortly or check billing.',
   AI_MODEL_NOT_FOUND: 'Configured AI model is unavailable right now.',
+  INVALID_AI_REQUEST:
+    'The air quality request could not be processed by the AI service. Please verify your location and AQI values.',
   UPSTREAM_TIMEOUT: 'The upstream service timed out. Please try again.',
   RATE_LIMIT_EXCEEDED: 'Too many requests. Please wait a minute before trying again.',
   MISSING_API_KEY:
