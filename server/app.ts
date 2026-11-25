@@ -14,7 +14,7 @@ import { isRecord } from '../src/utils/typeGuards.ts';
 import { handleLiveAqiLookup } from './aqiHandler.ts';
 import { handleIndianCitySearch } from './citiesHandler.ts';
 import { sendErrorResponse } from './errorResponse.ts';
-import { handleAssistantRecommendations } from './geminiHandler.ts';
+import { createAssistantRecommendationsHandler } from './geminiHandler.ts';
 import { applySecurityHeaders, createApiRateLimiter } from './securityMiddleware.ts';
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -81,7 +81,7 @@ export async function createApp(): Promise<Express> {
   app.use(API_ENDPOINTS.API_PREFIX, createApiRateLimiter());
   app.get(API_ENDPOINTS.AQI_LIVE, handleLiveAqiLookup);
   app.get(API_ENDPOINTS.CITIES_SEARCH, handleIndianCitySearch);
-  app.post(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, handleAssistantRecommendations);
+  app.post(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, createAssistantRecommendationsHandler());
 
   app.use(API_ENDPOINTS.API_PREFIX, (_req: Request, res: Response): void => {
     sendErrorResponse(

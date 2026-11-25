@@ -46,7 +46,7 @@ export function isModelUnavailableError(error: unknown): boolean {
 /**
  * Checks whether an upstream Gemini error is a transient overload or rate-limit condition (503 or 429).
  */
-export function isTransientBusyError(error: unknown): boolean {
+function isTransientBusyError(error: unknown): boolean {
   const status = getUpstreamStatus(error);
   if (status === HTTP_STATUS.SERVICE_UNAVAILABLE || status === HTTP_STATUS.TOO_MANY_REQUESTS) {
     return true;
@@ -60,4 +60,20 @@ export function isTransientBusyError(error: unknown): boolean {
     rawMessage.includes('RESOURCE_EXHAUSTED') ||
     rawMessage.toLowerCase().includes('overloaded')
   );
+}
+
+/**
+ * Classifies an error caught during model chain execution into skip (next model),
+ * busy (retry once after delay), or immediate rethrow.
+ */
+export function classifyGeminiChainError(
+  error: unknown,
+  totalAborted: boolean,
+  createTimeoutError: () => Error,
+  isTimeoutError: (err: unknown) => boolean,
+): 'skip' | 'busy' {
+  if (totalAborted) throw createTimeoutError();
+  if (isTimeoutError(error) || isModelUnavailableError(error)) return 'skip';
+  if (isTransientBusyError(error)) return 'busy';
+  throw error;
 }

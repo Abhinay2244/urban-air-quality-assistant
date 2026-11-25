@@ -14,6 +14,7 @@ export const APP_TEXT = {
     'Tailored low-emission routines, indoor air strategies, and measurable exposure guidance for winter smog.',
   SUBMIT_LABEL: 'Get Air Quality Plan',
   LOADING_LABEL: 'Analyzing local air & generating plan...',
+  SLOW_LOADING_NOTE: 'Generating your plan, this can take up to 40 seconds',
   EMPTY_RECOMMENDATIONS_MESSAGE:
     'Enter your city and household profile above to generate a four-part winter smog action plan.',
   EMPTY_CATEGORY_MESSAGE: 'No additional actions needed for this section at the current AQI level.',

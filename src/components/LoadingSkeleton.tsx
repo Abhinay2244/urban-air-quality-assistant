@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
 import { APP_TEXT } from '../constants/config.ts';
+import { INPUT_LIMITS } from '../constants/limits.ts';
 
 const SKELETON_SECTION_COUNT = 4;
 
@@ -7,6 +8,15 @@ const SKELETON_SECTION_COUNT = 4;
  * Accessible loading skeleton mirroring the AQI gauge card and categorized recommendation layout.
  */
 export function LoadingSkeleton(): ReactElement {
+  const [showSlowNote, setShowSlowNote] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowSlowNote(true);
+    }, INPUT_LIMITS.SLOW_LOADING_NOTE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div role="status" aria-label={APP_TEXT.LOADING_LABEL} className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -38,6 +48,12 @@ export function LoadingSkeleton(): ReactElement {
           ))}
         </div>
       </div>
+
+      {showSlowNote && (
+        <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+          {APP_TEXT.SLOW_LOADING_NOTE}
+        </p>
+      )}
     </div>
   );
 }

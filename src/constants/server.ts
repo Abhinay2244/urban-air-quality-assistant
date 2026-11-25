@@ -17,6 +17,7 @@ export const SERVER_CONFIG = {
   MAX_PORT: 65535,
   HOST: '0.0.0.0',
   PROVIDER_TIMEOUT_MS: 8000,
+  REQUEST_TIMEOUT_MS: 60_000,
   JSON_BODY_LIMIT: '16kb',
 } as const;
 
@@ -44,21 +45,32 @@ export const SECURITY_HEADERS = {
 } as const;
 
 /**
- * Ordered Gemini model chain tried in priority order on transient busy or availability errors.
+ * Ordered Gemini model chain tried in priority order on transient busy, timeout, or availability errors.
  */
 export const GEMINI_MODEL_CHAIN = [
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-3.7-flash',
   'gemini-3.5-flash-lite',
 ] as const;
 
 /**
- * Gemini API payload formatting, retry delay, and total request timeout configuration.
+ * Gemini API payload formatting, output budget, retry delay, and timeout configuration.
  */
 export const GEMINI_CONFIG = {
   USER_AGENT: 'aistudio-build',
   RESPONSE_MIME_TYPE: 'application/json',
+  MAX_OUTPUT_TOKENS: 2048,
   RETRY_DELAY_MS: 800,
-  TOTAL_TIMEOUT_MS: 25_000,
+  PER_ATTEMPT_TIMEOUT_MS: 20_000,
+  TOTAL_TIMEOUT_MS: 45_000,
+} as const;
+
+/**
+ * Bounded in-memory cache configuration for validated non-fallback Gemini recommendations.
+ */
+export const GEMINI_CACHE_CONFIG = {
+  TTL_MS: 10 * 60 * 1000,
+  MAX_ENTRIES: 100,
+  AQI_BUCKET_SIZE: 10,
 } as const;

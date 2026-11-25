@@ -4,6 +4,7 @@
  * Must not contain runtime Express handlers, API keys, or prompt text builders.
  */
 import { Type, type Schema } from '@google/genai';
+import { INPUT_LIMITS } from '../src/constants/limits.ts';
 import { ASSISTANT_SCHEMA_DESCRIPTIONS } from '../src/constants/prompts.ts';
 
 /**
@@ -21,6 +22,8 @@ export const ASSISTANT_RESPONSE_SCHEMA: Schema = {
     recommendations: {
       type: Type.ARRAY,
       description: ASSISTANT_SCHEMA_DESCRIPTIONS.RECOMMENDATIONS,
+      minItems: String(INPUT_LIMITS.MIN_RECOMMENDATIONS),
+      maxItems: String(INPUT_LIMITS.MAX_RECOMMENDATIONS),
       items: {
         type: Type.OBJECT,
         properties: {

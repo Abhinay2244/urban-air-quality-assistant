@@ -1,15 +1,38 @@
 /**
  * @module server/geminiTransport
- * Responsibility: Invoke @google/genai with abort-signal racing and cancellable retry delays.
+ * Responsibility: Invoke @google/genai with thinking config, maxOutputTokens, per-attempt timeout, and retry backoff.
  * Must not hold Express request/response objects, select models, or read environment keys.
  */
-import type { GoogleGenAI } from '@google/genai';
+import { type GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { ASSISTANT_SYSTEM_INSTRUCTION } from '../src/constants/prompts.ts';
 import { GEMINI_CONFIG } from '../src/constants/server.ts';
 import { ASSISTANT_RESPONSE_SCHEMA } from './geminiSchema.ts';
 
 /**
- * Creates a standardized TimeoutError used when the overall Gemini request cap expires.
+ * Lowest broadly supported Gemini thinking level used across all chain models to minimize latency.
+ */
+const GEMINI_THINKING_LEVEL = ThinkingLevel.LOW;
+
+/**
+ * Timing parameters governing retry backoff, per-attempt timeout, and total request budget.
+ */
+export interface GeminiChainTimings {
+  retryDelayMs: number;
+  perAttemptTimeoutMs: number;
+  totalTimeoutMs: number;
+}
+
+/**
+ * Default retry delay, per-attempt timeout, and total budget timings derived from GEMINI_CONFIG.
+ */
+export const DEFAULT_GEMINI_TIMINGS: GeminiChainTimings = {
+  retryDelayMs: GEMINI_CONFIG.RETRY_DELAY_MS,
+  perAttemptTimeoutMs: GEMINI_CONFIG.PER_ATTEMPT_TIMEOUT_MS,
+  totalTimeoutMs: GEMINI_CONFIG.TOTAL_TIMEOUT_MS,
+};
+
+/**
+ * Creates a standardized TimeoutError used when a per-attempt or total Gemini timeout expires.
  */
 export function createTimeoutError(): Error {
   const err = new Error('Gemini request timed out');
@@ -36,23 +59,30 @@ export function waitForRetry(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 /**
- * Executes a single structured-JSON Gemini call under the shared total-timeout AbortSignal.
+ * Executes a single structured-JSON Gemini call bounded by both per-attempt timeout and total budget signal.
  */
 export async function invokeGeminiModel(
   ai: GoogleGenAI,
   model: string,
   contents: string,
-  abortSignal: AbortSignal,
+  perAttemptTimeoutMs: number,
+  totalSignal: AbortSignal,
 ): Promise<string> {
-  let onAbort: (() => void) | undefined;
+  if (totalSignal.aborted) throw createTimeoutError();
+  const attemptController = new AbortController();
+  const onTotalAbort = (): void => attemptController.abort(createTimeoutError());
+  totalSignal.addEventListener('abort', onTotalAbort, { once: true });
+  const attemptTimer = setTimeout(
+    () => attemptController.abort(createTimeoutError()),
+    perAttemptTimeoutMs,
+  );
+
+  let onAttemptAbort: (() => void) | undefined;
   const abortPromise = new Promise<never>((_resolve, reject) => {
-    if (abortSignal.aborted) {
-      reject(createTimeoutError());
-      return;
-    }
-    onAbort = (): void => reject(createTimeoutError());
-    abortSignal.addEventListener('abort', onAbort, { once: true });
+    onAttemptAbort = (): void => reject(createTimeoutError());
+    attemptController.signal.addEventListener('abort', onAttemptAbort, { once: true });
   });
+
   try {
     const response = await Promise.race([
       ai.models.generateContent({
@@ -62,13 +92,17 @@ export async function invokeGeminiModel(
           systemInstruction: ASSISTANT_SYSTEM_INSTRUCTION,
           responseMimeType: GEMINI_CONFIG.RESPONSE_MIME_TYPE,
           responseSchema: ASSISTANT_RESPONSE_SCHEMA,
-          abortSignal,
+          maxOutputTokens: GEMINI_CONFIG.MAX_OUTPUT_TOKENS,
+          thinkingConfig: { thinkingLevel: GEMINI_THINKING_LEVEL },
+          abortSignal: attemptController.signal,
         },
       }),
       abortPromise,
     ]);
     return response.text ?? '';
   } finally {
-    if (onAbort) abortSignal.removeEventListener('abort', onAbort);
+    clearTimeout(attemptTimer);
+    totalSignal.removeEventListener('abort', onTotalAbort);
+    if (onAttemptAbort) attemptController.signal.removeEventListener('abort', onAttemptAbort);
   }
 }
