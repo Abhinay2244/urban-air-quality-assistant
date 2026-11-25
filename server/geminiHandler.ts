@@ -1,55 +1,84 @@
 /**
  * @module server/geminiHandler
- * Responsibility: Validate recommendation request payloads and invoke @google/genai on the server.
+ * Responsibility: Validate recommendation request payloads and run the ordered Gemini model chain.
  * Must not leak GEMINI_API_KEY, parse UI formatting, or apply client-side presentation logic.
  */
-import { GoogleGenAI, Type, type Schema } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import type { Request, Response } from 'express';
 import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
-import {
-  ASSISTANT_SCHEMA_DESCRIPTIONS,
-  ASSISTANT_SYSTEM_INSTRUCTION,
-} from '../src/constants/prompts.ts';
-import { GEMINI_CONFIG } from '../src/constants/server.ts';
+import { GEMINI_CONFIG, GEMINI_MODEL_CHAIN } from '../src/constants/server.ts';
 import { buildAssistantPrompt } from '../src/utils/promptBuilder.ts';
 import { sanitizeAqiData } from '../src/utils/sanitizing.ts';
 import { isRecord } from '../src/utils/typeGuards.ts';
 import { validateAqiData, validateUserProfile } from '../src/utils/validation.ts';
-import { logServerError, mapGeminiUpstreamError, sendErrorResponse } from './errorResponse.ts';
+import {
+  isTimeoutError,
+  logGeminiModelSuccess,
+  logGeminiUpstreamError,
+  mapGeminiUpstreamError,
+  sendErrorResponse,
+} from './errorResponse.ts';
+import { GeminiBusyError, isModelUnavailableError, isTransientBusyError } from './geminiErrors.ts';
+import { createTimeoutError, invokeGeminiModel, waitForRetry } from './geminiTransport.ts';
 
-const ASSISTANT_RESPONSE_SCHEMA: Schema = {
-  type: Type.OBJECT,
-  description: ASSISTANT_SCHEMA_DESCRIPTIONS.ROOT,
-  properties: {
-    summary: { type: Type.STRING, description: ASSISTANT_SCHEMA_DESCRIPTIONS.SUMMARY },
-    priorityGuidance: {
-      type: Type.STRING,
-      description: ASSISTANT_SCHEMA_DESCRIPTIONS.PRIORITY_GUIDANCE,
-    },
-    recommendations: {
-      type: Type.ARRAY,
-      description: ASSISTANT_SCHEMA_DESCRIPTIONS.RECOMMENDATIONS,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING, description: ASSISTANT_SCHEMA_DESCRIPTIONS.TITLE },
-          category: { type: Type.STRING, description: ASSISTANT_SCHEMA_DESCRIPTIONS.CATEGORY },
-          action: { type: Type.STRING, description: ASSISTANT_SCHEMA_DESCRIPTIONS.ACTION },
-          impactExplanation: {
-            type: Type.STRING,
-            description: ASSISTANT_SCHEMA_DESCRIPTIONS.IMPACT_EXPLANATION,
-          },
-          estimatedPM25Reduction: {
-            type: Type.NUMBER,
-            description: ASSISTANT_SCHEMA_DESCRIPTIONS.ESTIMATED_PM25_REDUCTION,
-          },
-        },
-        required: ['title', 'category', 'action', 'impactExplanation', 'estimatedPM25Reduction'],
-      },
-    },
+function classifyChainError(error: unknown, aborted: boolean): 'unavailable' | 'busy' {
+  if (aborted) throw createTimeoutError();
+  if (isTimeoutError(error)) throw error;
+  if (isModelUnavailableError(error)) return 'unavailable';
+  if (isTransientBusyError(error)) return 'busy';
+  throw error;
+}
+
+/**
+ * Invokes GEMINI_MODEL_CHAIN in order with single-retry on 503/429, immediate skip on 404,
+ * and a total time cap across all attempts.
+ */
+export async function generateRecommendationsText(
+  ai: GoogleGenAI,
+  contents: string,
+  timings: { retryDelayMs: number; totalTimeoutMs: number } = {
+    retryDelayMs: GEMINI_CONFIG.RETRY_DELAY_MS,
+    totalTimeoutMs: GEMINI_CONFIG.TOTAL_TIMEOUT_MS,
   },
-  required: ['summary', 'priorityGuidance', 'recommendations'],
-};
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(createTimeoutError()), timings.totalTimeoutMs);
+  let lastError: unknown;
+  let allModelsBusy = true;
+
+  try {
+    for (const model of GEMINI_MODEL_CHAIN) {
+      if (controller.signal.aborted) throw createTimeoutError();
+      try {
+        const text = await invokeGeminiModel(ai, model, contents, controller.signal);
+        logGeminiModelSuccess(model);
+        return text;
+      } catch (firstError: unknown) {
+        lastError = firstError;
+        logGeminiUpstreamError('Gemini Upstream', model, firstError);
+        if (classifyChainError(firstError, controller.signal.aborted) === 'unavailable') {
+          allModelsBusy = false;
+          continue;
+        }
+        await waitForRetry(timings.retryDelayMs, controller.signal);
+        try {
+          const retryText = await invokeGeminiModel(ai, model, contents, controller.signal);
+          logGeminiModelSuccess(model);
+          return retryText;
+        } catch (retryError: unknown) {
+          lastError = retryError;
+          logGeminiUpstreamError('Gemini Retry', model, retryError);
+          if (classifyChainError(retryError, controller.signal.aborted) === 'unavailable') {
+            allModelsBusy = false;
+          }
+        }
+      }
+    }
+    throw allModelsBusy ? new GeminiBusyError() : lastError;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Express handler calling Gemini on the server with runtime payload validation and safe error mapping.
@@ -94,19 +123,13 @@ export async function handleAssistantRecommendations(req: Request, res: Response
     });
 
     const sanitizedAqi = sanitizeAqiData(req.body.aqiData, profileResult.value.city);
-    const response = await ai.models.generateContent({
-      model: GEMINI_CONFIG.MODEL,
-      contents: buildAssistantPrompt(profileResult.value, sanitizedAqi),
-      config: {
-        systemInstruction: ASSISTANT_SYSTEM_INSTRUCTION,
-        responseMimeType: GEMINI_CONFIG.RESPONSE_MIME_TYPE,
-        responseSchema: ASSISTANT_RESPONSE_SCHEMA,
-      },
-    });
+    const rawText = await generateRecommendationsText(
+      ai,
+      buildAssistantPrompt(profileResult.value, sanitizedAqi),
+    );
 
-    res.status(HTTP_STATUS.OK).json({ rawText: response.text ?? '' });
+    res.status(HTTP_STATUS.OK).json({ rawText });
   } catch (error: unknown) {
-    logServerError('Gemini Handler', error);
     const mapped = mapGeminiUpstreamError(error);
     sendErrorResponse(res, mapped.status, ERROR_CODES.AI_SERVICE_ERROR, mapped.message);
   }

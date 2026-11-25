@@ -44,10 +44,21 @@ export const SECURITY_HEADERS = {
 } as const;
 
 /**
- * Gemini API model and payload formatting configuration.
+ * Ordered Gemini model chain tried in priority order on transient busy or availability errors.
+ */
+export const GEMINI_MODEL_CHAIN = [
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+] as const;
+
+/**
+ * Gemini API payload formatting, retry delay, and total request timeout configuration.
  */
 export const GEMINI_CONFIG = {
-  MODEL: 'gemini-4-hydrogen',
   USER_AGENT: 'aistudio-build',
   RESPONSE_MIME_TYPE: 'application/json',
+  RETRY_DELAY_MS: 800,
+  TOTAL_TIMEOUT_MS: 25_000,
 } as const;

@@ -122,6 +122,10 @@ describe('server geminiHandler and upstream error mapping', () => {
       status: HTTP_STATUS.BAD_GATEWAY,
       message: ERROR_MESSAGES.AI_MODEL_NOT_FOUND,
     });
+    expect(mapGeminiUpstreamError({ status: 503 })).toEqual({
+      status: HTTP_STATUS.SERVICE_UNAVAILABLE,
+      message: ERROR_MESSAGES.AI_SERVICE_BUSY,
+    });
     const timeoutErr = new Error('Signal timed out');
     timeoutErr.name = 'TimeoutError';
     expect(mapGeminiUpstreamError(timeoutErr)).toEqual({
