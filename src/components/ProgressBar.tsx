@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
-import { APP_TEXT } from '../constants/config.ts';
-import { INPUT_LIMITS } from '../constants/limits.ts';
-import { clampRounded } from '../utils/math.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
+import { INPUT_LIMITS } from '@shared/constants/limits.ts';
+import { clampRounded } from '@shared/utils/math.ts';
 
 /**
  * Props for ProgressBar component.
@@ -14,7 +14,7 @@ export interface ProgressBarProps {
 /**
  * Accessible native progress bar with a visible percentage text equivalent.
  */
-export function ProgressBar({ value, label }: ProgressBarProps): ReactElement {
+export function ProgressBar({ value, label }: Readonly<ProgressBarProps>): ReactElement {
   const clamped = clampRounded(
     value,
     INPUT_LIMITS.MIN_PM25_REDUCTION,

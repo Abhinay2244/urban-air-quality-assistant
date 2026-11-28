@@ -1,0 +1,367 @@
+openapi: 3.1.0
+info:
+  title: Urban Air Quality Assistant API
+  version: 1.0.0
+  description: >
+    Backend proxy and API contract for India-focused live AQI lookups, India-only city autocomplete,
+    health checks, and personalized Gemini household air quality recommendations.
+servers:
+  - url: /
+    description: Same-origin Express application server
+
+paths:
+  /api/health:
+    get:
+      summary: Service health check
+      description: Returns process uptime and package version without calling external services or exposing secrets.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '403':
+          $ref: '#/components/responses/ErrorJson'
+        '405':
+          $ref: '#/components/responses/ErrorJson'
+        '429':
+          $ref: '#/components/responses/ErrorJson'
+
+  /api/cities:
+    get:
+      summary: India-only city search
+      description: Queries Open-Meteo Geocoding strictly filtered to India (countryCode=IN).
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: City query string (2 to 80 sanitized characters).
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 80
+      responses:
+        '200':
+          description: Matching Indian cities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitiesSearchResponse'
+        '400':
+          $ref: '#/components/responses/ErrorJson'
+        '403':
+          $ref: '#/components/responses/ErrorJson'
+        '405':
+          $ref: '#/components/responses/ErrorJson'
+        '429':
+          $ref: '#/components/responses/ErrorJson'
+        '502':
+          $ref: '#/components/responses/ErrorJson'
+        '504':
+          $ref: '#/components/responses/ErrorJson'
+
+  /api/aqi:
+    get:
+      summary: Live air quality lookup (US EPA AQI scale)
+      description: >
+        Fetches current air metrics (preserving raw live readings above 500) and optional 24-hour
+        hourly PM2.5 forecasts using WAQI when AQI_API_KEY is configured, or Open-Meteo otherwise.
+      parameters:
+        - name: city
+          in: query
+          required: true
+          description: City name (2 to 80 sanitized characters).
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 80
+        - name: lat
+          in: query
+          required: false
+          description: Optional latitude (-90 to 90); must be paired with lon.
+          schema:
+            type: number
+            minimum: -90
+            maximum: 90
+        - name: lon
+          in: query
+          required: false
+          description: Optional longitude (-180 to 180); must be paired with lat.
+          schema:
+            type: number
+            minimum: -180
+            maximum: 180
+      responses:
+        '200':
+          description: Normalized US-scale live air quality payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveAqiResponse'
+        '400':
+          $ref: '#/components/responses/ErrorJson'
+        '403':
+          $ref: '#/components/responses/ErrorJson'
+        '404':
+          $ref: '#/components/responses/ErrorJson'
+        '405':
+          $ref: '#/components/responses/ErrorJson'
+        '429':
+          $ref: '#/components/responses/ErrorJson'
+        '502':
+          $ref: '#/components/responses/ErrorJson'
+        '504':
+          $ref: '#/components/responses/ErrorJson'
+
+  /api/assistant/recommendations:
+    post:
+      summary: Generate personalized household air quality plan
+      description: >
+        Validates household profile and US-scale AQI data, serves cached non-fallback plans on hit,
+        and executes the ordered Gemini fallback chain server-side using ThinkingLevel.LOW.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+      responses:
+        '200':
+          description: Raw JSON plan text from Gemini or response cache
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationRawResponse'
+        '400':
+          $ref: '#/components/responses/ErrorJson'
+        '403':
+          $ref: '#/components/responses/ErrorJson'
+        '405':
+          $ref: '#/components/responses/ErrorJson'
+        '413':
+          $ref: '#/components/responses/ErrorJson'
+        '415':
+          $ref: '#/components/responses/ErrorJson'
+        '429':
+          $ref: '#/components/responses/ErrorJson'
+        '502':
+          $ref: '#/components/responses/ErrorJson'
+        '503':
+          $ref: '#/components/responses/ErrorJson'
+        '504':
+          $ref: '#/components/responses/ErrorJson'
+
+components:
+  responses:
+    ErrorJson:
+      description: Structured API error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, uptimeSeconds, version]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+        version:
+          type: string
+
+    CitySearchResult:
+      type: object
+      required: [name, country, latitude, longitude]
+      properties:
+        name:
+          type: string
+        admin1:
+          type: string
+        country:
+          type: string
+        countryCode:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+
+    CitiesSearchResponse:
+      type: object
+      required: [cities]
+      properties:
+        cities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CitySearchResult'
+
+    HourlyPm25Point:
+      type: object
+      required: [time, pm25]
+      properties:
+        time:
+          type: string
+        pm25:
+          type: number
+          minimum: 0
+
+    LiveAqiResponse:
+      type: object
+      required: [city, country, provider, aqi, pm25, no2, o3, updatedAt]
+      properties:
+        city:
+          type: string
+        country:
+          type: string
+        stationName:
+          type: string
+        provider:
+          type: string
+          enum: [waqi, open-meteo]
+        locationWarning:
+          type: string
+        aqi:
+          type: integer
+          minimum: 0
+        pm25:
+          type: number
+          minimum: 0
+        pm10:
+          type: number
+          minimum: 0
+        no2:
+          type: number
+          minimum: 0
+        o3:
+          type: number
+          minimum: 0
+        updatedAt:
+          type: string
+        hourlyPm25:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourlyPm25Point'
+
+    UserProfile:
+      type: object
+      required:
+        - city
+        - familyType
+        - hasChildren
+        - hasElderly
+        - hasRespiratoryCondition
+        - commuteMode
+        - homeType
+      properties:
+        city:
+          type: string
+          minLength: 2
+          maxLength: 80
+        familyType:
+          type: string
+          enum: [SINGLE, COUPLE, NUCLEAR, MULTI_GENERATIONAL, WORKING_PROFESSIONAL, STUDENT]
+        hasChildren:
+          type: boolean
+        hasElderly:
+          type: boolean
+        hasRespiratoryCondition:
+          type: boolean
+        commuteMode:
+          type: string
+          enum: [CAR, PUBLIC_TRANSIT, WALK_OR_BIKE, MIXED, REMOTE]
+        homeType:
+          type: string
+          enum: [APARTMENT, DETACHED_HOUSE, TOWNHOUSE, SHARED_HOUSING]
+
+    AqiData:
+      type: object
+      required: [city, country, aqi, pm25, category]
+      properties:
+        city:
+          type: string
+        country:
+          type: string
+        stationName:
+          type: string
+        provider:
+          type: string
+          enum: [waqi, open-meteo]
+        locationWarning:
+          type: string
+        aqi:
+          type: number
+          minimum: 0
+        pm25:
+          type: number
+          minimum: 0
+        pm10:
+          type: number
+          minimum: 0
+        no2:
+          type: number
+          minimum: 0
+        o3:
+          type: number
+          minimum: 0
+        category:
+          type: string
+          enum: [GOOD, MODERATE, UNHEALTHY_SENSITIVE, UNHEALTHY, VERY_UNHEALTHY, HAZARDOUS]
+        updatedAt:
+          type: string
+        hourlyPm25:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourlyPm25Point'
+        source:
+          type: string
+          enum: [live, manual]
+
+    RecommendationRequest:
+      type: object
+      required: [profile, aqiData]
+      properties:
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+        aqiData:
+          $ref: '#/components/schemas/AqiData'
+
+    RecommendationRawResponse:
+      type: object
+      required: [rawText]
+      properties:
+        rawText:
+          type: string
+
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - FORBIDDEN
+        - NOT_FOUND
+        - METHOD_NOT_ALLOWED
+        - PAYLOAD_TOO_LARGE
+        - UNSUPPORTED_MEDIA_TYPE
+        - CITY_NOT_FOUND
+        - AQI_FETCH_ERROR
+        - AI_SERVICE_ERROR
+        - NETWORK_ERROR
+        - RATE_LIMIT_EXCEEDED
+        - UNKNOWN_ERROR
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+        details:
+          type: string

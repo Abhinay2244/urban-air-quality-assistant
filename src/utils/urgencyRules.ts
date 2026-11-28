@@ -3,7 +3,7 @@
  * Responsibility: Enrich assistant recommendations with deterministic US-scale AQI and household urgency rules.
  * Must not invoke Gemini, fetch AQI data, or contain UI rendering logic.
  */
-import { AQI_THRESHOLDS } from '../constants/aqi.ts';
+import { AQI_THRESHOLDS } from '@shared/constants/aqi.ts';
 import {
   CONTEXT_RULE_TEMPLATES,
   SEVERE_ALERT_TEMPLATE,
@@ -18,7 +18,7 @@ import {
   RecommendationCategory,
   UrgencyLevel,
   type UserProfile,
-} from '../types/index.ts';
+} from '@shared/types/index.ts';
 
 const URGENCY_RANK: Record<UrgencyLevel, number> = {
   [UrgencyLevel.CRITICAL]: 3,

@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useProfile } from '../../hooks/useProfile.ts';
-import { CommuteMode } from '../../types/index.ts';
+import { CommuteMode } from '@shared/types/index.ts';
 
 describe('useProfile hook', () => {
   it('updates fields and validates sanitized city values', () => {

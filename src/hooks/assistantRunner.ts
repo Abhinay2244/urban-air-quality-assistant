@@ -3,7 +3,7 @@
  * Responsibility: Execute live (city or coordinates) and manual AQI + recommendation resolution steps.
  * Must not hold React state, manage cooldown timers, or render UI components.
  */
-import { ERROR_MESSAGES } from '../constants/http.ts';
+import { ERROR_MESSAGES } from '@shared/constants/http.ts';
 import { UI_COPY } from '../constants/uiTheme.ts';
 import { createManualAqiData, fetchAqiDataByCity } from '../services/aqiService.ts';
 import { getAirQualityRecommendations } from '../services/geminiService.ts';
@@ -15,8 +15,8 @@ import {
   type Coordinates,
   ErrorCode,
   type UserProfile,
-} from '../types/index.ts';
-import { toAppError } from '../utils/errors.ts';
+} from '@shared/types/index.ts';
+import { toAppError } from '@shared/utils/errors.ts';
 import { applyUrgencyRules } from '../utils/urgencyRules.ts';
 
 /** Last executed recommendation request parameters used for mode-preserving retry. */
@@ -54,6 +54,54 @@ export function formatCooldownNotice(cooldownSeconds: number): string {
   return `${UI_COPY.COOLDOWN_NOTICE_PREFIX} ${cooldownSeconds} ${unit}`;
 }
 
+async function resolveAqiStep(
+  req: LastAssistantRequest,
+  signal: AbortSignal,
+): Promise<{ aqiData?: AqiData; error?: AppError; markAqiUnavailable?: boolean }> {
+  const isManual = req.mode === 'manual';
+  try {
+    const aqiData = isManual
+      ? createManualAqiData(req.profile.city, req.aqi, req.pm25, req.pm10)
+      : await fetchAqiDataByCity(req.profile.city, signal, req.coordinates);
+    return { aqiData };
+  } catch (err: unknown) {
+    if (signal.aborted || isAbortError(err)) {
+      throw err;
+    }
+    const fallbackCode = isManual ? ErrorCode.VALIDATION_ERROR : ErrorCode.AQI_FETCH_ERROR;
+    const fallbackMsg = isManual
+      ? ERROR_MESSAGES.INVALID_MANUAL_AQI
+      : ERROR_MESSAGES.AQI_FETCH_FAILED;
+    const appErr = toAppError(err, fallbackCode, fallbackMsg);
+    return {
+      error: appErr,
+      markAqiUnavailable:
+        isManual ||
+        appErr.code === ErrorCode.AQI_FETCH_ERROR ||
+        appErr.code === ErrorCode.CITY_NOT_FOUND,
+    };
+  }
+}
+
+async function fetchRecommendationsStep(
+  req: LastAssistantRequest,
+  aqiData: AqiData,
+  signal: AbortSignal,
+): Promise<{ response?: AssistantResponse; error?: AppError; markAqiUnavailable?: boolean }> {
+  try {
+    const rawResponse = await getAirQualityRecommendations(req.profile, aqiData, signal);
+    return { response: applyUrgencyRules(rawResponse, req.profile, aqiData) };
+  } catch (err: unknown) {
+    if (signal.aborted || isAbortError(err)) {
+      throw err;
+    }
+    return {
+      error: toAppError(err, ErrorCode.AI_SERVICE_ERROR, ERROR_MESSAGES.AI_REQUEST_FAILED),
+      markAqiUnavailable: req.mode === 'manual',
+    };
+  }
+}
+
 /**
  * Resolves AQI data (by city or manual entry) and fetches urgency-ranked AI recommendations.
  */
@@ -62,38 +110,14 @@ export async function executeAssistantRequest(
   signal: AbortSignal,
   onResolvedAqi: (aqiData: AqiData) => void,
 ): Promise<{ response?: AssistantResponse; error?: AppError; markAqiUnavailable?: boolean }> {
-  let resolvedAqi: AqiData;
-  const isManual = req.mode === 'manual';
-
-  try {
-    resolvedAqi = isManual
-      ? createManualAqiData(req.profile.city, req.aqi, req.pm25, req.pm10)
-      : await fetchAqiDataByCity(req.profile.city, signal, req.coordinates);
-  } catch (err: unknown) {
-    if (signal.aborted || isAbortError(err)) throw err;
-    const fallbackCode = isManual ? ErrorCode.VALIDATION_ERROR : ErrorCode.AQI_FETCH_ERROR;
-    const fallbackMsg = isManual
-      ? ERROR_MESSAGES.INVALID_MANUAL_AQI
-      : ERROR_MESSAGES.AQI_FETCH_FAILED;
-    const appErr = toAppError(err, fallbackCode, fallbackMsg);
-    const markAqiUnavailable =
-      isManual ||
-      appErr.code === ErrorCode.AQI_FETCH_ERROR ||
-      appErr.code === ErrorCode.CITY_NOT_FOUND;
-    return { error: appErr, markAqiUnavailable };
+  const aqiStep = await resolveAqiStep(req, signal);
+  if (!aqiStep.aqiData) {
+    return aqiStep;
   }
-
-  if (signal.aborted) return {};
-  onResolvedAqi(resolvedAqi);
-
-  try {
-    const rawResponse = await getAirQualityRecommendations(req.profile, resolvedAqi, signal);
-    return { response: applyUrgencyRules(rawResponse, req.profile, resolvedAqi) };
-  } catch (err: unknown) {
-    if (signal.aborted || isAbortError(err)) throw err;
-    return {
-      error: toAppError(err, ErrorCode.AI_SERVICE_ERROR, ERROR_MESSAGES.AI_REQUEST_FAILED),
-      markAqiUnavailable: isManual,
-    };
+  if (signal.aborted) {
+    return {};
   }
+  onResolvedAqi(aqiStep.aqiData);
+
+  return fetchRecommendationsStep(req, aqiStep.aqiData, signal);
 }

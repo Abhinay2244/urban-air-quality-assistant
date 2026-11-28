@@ -5,8 +5,8 @@ import {
   MIN_STANDARD_AQI,
   WHO_PM10_GUIDELINE_UG_M3,
   WHO_PM25_GUIDELINE_UG_M3,
-} from '../../constants/aqi.ts';
-import { AqiCategoryId } from '../../types/index.ts';
+} from '@shared/constants/aqi.ts';
+import { AqiCategoryId } from '@shared/types/index.ts';
 import { getAqiCategoryByValue } from '../../utils/aqiCalculations.ts';
 
 describe('US EPA AQI constants and category resolution', () => {
@@ -24,12 +24,18 @@ describe('US EPA AQI constants and category resolution', () => {
 
   it('covers contiguous integer breakpoints from 0 to 500 and defines WHO 24h guidelines', () => {
     expect(AQI_CATEGORIES[0].minAqi).toBe(MIN_STANDARD_AQI);
-    expect(AQI_CATEGORIES[AQI_CATEGORIES.length - 1].maxAqi).toBe(MAX_STANDARD_AQI);
+    expect(AQI_CATEGORIES[AQI_CATEGORIES.length - 1]?.maxAqi).toBe(MAX_STANDARD_AQI);
     expect(WHO_PM25_GUIDELINE_UG_M3).toBe(15);
     expect(WHO_PM10_GUIDELINE_UG_M3).toBe(45);
 
     for (let index = 1; index < AQI_CATEGORIES.length; index += 1) {
-      expect(AQI_CATEGORIES[index].minAqi).toBe(AQI_CATEGORIES[index - 1].maxAqi + 1);
+      const current = AQI_CATEGORIES[index];
+      const previous = AQI_CATEGORIES[index - 1];
+      expect(current).toBeDefined();
+      expect(previous).toBeDefined();
+      if (current && previous) {
+        expect(current.minAqi).toBe(previous.maxAqi + 1);
+      }
     }
   });
 

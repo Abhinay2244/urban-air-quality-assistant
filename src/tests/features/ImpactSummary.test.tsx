@@ -1,10 +1,10 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { APP_TEXT, DEFAULT_USER_PROFILE } from '../../constants/config.ts';
+import { APP_TEXT, DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import { WhyThesePanel } from '../../features/assistant/WhyThesePanel.tsx';
 import { ImpactSummary } from '../../features/impact/ImpactSummary.tsx';
-import { AqiCategoryId, type AqiData, FamilyType } from '../../types/index.ts';
+import { AqiCategoryId, type AqiData, FamilyType } from '@shared/types/index.ts';
 
 afterEach(() => {
   cleanup();

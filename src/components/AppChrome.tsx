@@ -1,8 +1,22 @@
 import type { ReactElement } from 'react';
-import { APP_TEXT } from '../constants/config.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
 import { UI_COPY } from '../constants/uiTheme.ts';
 import { LogoMarkIcon } from './Icons.tsx';
 import { ThemeToggle } from './ThemeToggle.tsx';
+
+/**
+ * Visually hidden skip link revealed on keyboard focus to jump straight to main content.
+ */
+export function SkipToMainLink(): ReactElement {
+  return (
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-xl focus:bg-teal-700 focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white focus:shadow-md dark:focus:bg-teal-400 dark:focus:text-slate-950"
+    >
+      {APP_TEXT.SKIP_TO_MAIN_CONTENT}
+    </a>
+  );
+}
 
 /**
  * Top navigation header displaying app brand mark, tagline, and light/dark theme toggle.

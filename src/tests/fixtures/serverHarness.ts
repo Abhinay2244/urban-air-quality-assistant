@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 import { vi } from 'vitest';
-import { API_ENDPOINTS } from '../../constants/http.ts';
-import { AqiCategoryId, type AqiData, type UserProfile } from '../../types/index.ts';
+import { API_ENDPOINTS } from '@shared/constants/http.ts';
+import { AqiCategoryId, type AqiData, type UserProfile } from '@shared/types/index.ts';
 
 /** Builds a @google/genai mock module wrapping a provided generateContent spy. */
 export async function mockGenAiModule(generateContent: unknown): Promise<Record<string, unknown>> {
@@ -49,7 +49,8 @@ export async function postRecommendationJson(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ profile, aqiData }),
   });
-  return { status: res.status, body: (await res.json()) as unknown };
+  const body: unknown = await res.json();
+  return { status: res.status, body };
 }
 
 /** Starts an ephemeral HTTP server for an Express instance and closes it after running assertions. */

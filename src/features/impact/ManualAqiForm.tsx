@@ -1,12 +1,12 @@
-import { type FormEvent, type ReactElement, useState } from 'react';
-import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
-import { INPUT_LIMITS } from '../../constants/limits.ts';
+import { type ReactElement, type SyntheticEvent, useState } from 'react';
+import { APP_TEXT, UI_LABELS } from '@shared/constants/config.ts';
 import {
+  type ValidationResult,
   validateManualAqi,
   validateOptionalPm10,
   validateOptionalPm25,
-} from '../../utils/validation.ts';
-import { ManualMetricField } from './ManualMetricField.tsx';
+} from '@shared/utils/validation.ts';
+import { ManualMetricsGrid } from './ManualMetricsGrid.tsx';
 
 /**
  * Props for ManualAqiForm component.
@@ -20,10 +20,21 @@ export interface ManualAqiFormProps {
 // can submit immediately or adjust upward/downward from a realistic smog baseline.
 const DEFAULT_MANUAL_AQI = '180';
 
-/**
- * Fallback form allowing users to supply local AQI, optional PM2.5, and optional PM10 readings.
- */
-export function ManualAqiForm({ isLoading, onSubmitManualAqi }: ManualAqiFormProps): ReactElement {
+const readErrorMsg = <T,>(res: ValidationResult<T>): string | null =>
+  res.isValid ? null : (res.error?.message ?? null);
+
+function useManualAqiFields(): {
+  aqiInput: string;
+  pm25Input: string;
+  pm10Input: string;
+  inlineError: string | null;
+  pm25Error: string | null;
+  pm10Error: string | null;
+  onAqiChange: (val: string) => void;
+  onPm25Change: (val: string) => void;
+  onPm10Change: (val: string) => void;
+  submitIfValid: (onSubmit: (aqi: number, pm25?: number, pm10?: number) => void) => void;
+} {
   const [aqiInput, setAqiInput] = useState<string>(DEFAULT_MANUAL_AQI);
   const [pm25Input, setPm25Input] = useState<string>('');
   const [pm10Input, setPm10Input] = useState<string>('');
@@ -31,18 +42,53 @@ export function ManualAqiForm({ isLoading, onSubmitManualAqi }: ManualAqiFormPro
   const [pm25Error, setPm25Error] = useState<string | null>(null);
   const [pm10Error, setPm10Error] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  return {
+    aqiInput,
+    pm25Input,
+    pm10Input,
+    inlineError,
+    pm25Error,
+    pm10Error,
+    onAqiChange: (val) => {
+      setAqiInput(val);
+      setInlineError(readErrorMsg(validateManualAqi(val)));
+    },
+    onPm25Change: (val) => {
+      setPm25Input(val);
+      setPm25Error(readErrorMsg(validateOptionalPm25(val)));
+    },
+    onPm10Change: (val) => {
+      setPm10Input(val);
+      setPm10Error(readErrorMsg(validateOptionalPm10(val)));
+    },
+    submitIfValid: (onSubmit) => {
+      const aqiRes = validateManualAqi(aqiInput);
+      const pm25Res = validateOptionalPm25(pm25Input);
+      const pm10Res = validateOptionalPm10(pm10Input);
+      setInlineError(readErrorMsg(aqiRes));
+      setPm25Error(readErrorMsg(pm25Res));
+      setPm10Error(readErrorMsg(pm10Res));
+      if (aqiRes.isValid && pm25Res.isValid && pm10Res.isValid) {
+        onSubmit(aqiRes.value, pm25Res.value, pm10Res.value);
+      }
+    },
+  };
+}
+
+/**
+ * Fallback form allowing users to supply local AQI, optional PM2.5, and optional PM10 readings.
+ */
+export function ManualAqiForm({
+  isLoading,
+  onSubmitManualAqi,
+}: Readonly<ManualAqiFormProps>): ReactElement {
+  const fields = useManualAqiFields();
+  const hasError =
+    Boolean(fields.inlineError) || Boolean(fields.pm25Error) || Boolean(fields.pm10Error);
+
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    const aqiResult = validateManualAqi(aqiInput);
-    const pm25Result = validateOptionalPm25(pm25Input);
-    const pm10Result = validateOptionalPm10(pm10Input);
-    setInlineError(aqiResult.isValid ? null : (aqiResult.error?.message ?? null));
-    setPm25Error(pm25Result.isValid ? null : (pm25Result.error?.message ?? null));
-    setPm10Error(pm10Result.isValid ? null : (pm10Result.error?.message ?? null));
-    if (!aqiResult.isValid || !pm25Result.isValid || !pm10Result.isValid) {
-      return;
-    }
-    onSubmitManualAqi(aqiResult.value, pm25Result.value, pm10Result.value);
+    fields.submitIfValid(onSubmitManualAqi);
   };
 
   return (
@@ -54,54 +100,20 @@ export function ManualAqiForm({ isLoading, onSubmitManualAqi }: ManualAqiFormPro
       <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
         {APP_TEXT.MANUAL_AQI_NOTICE}
       </p>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <ManualMetricField
-          id="manual-aqi-input"
-          errorId="manual-aqi-error"
-          label={UI_LABELS.MANUAL_AQI_INPUT_LABEL}
-          value={aqiInput}
-          min={INPUT_LIMITS.MIN_AQI_VALUE}
-          max={INPUT_LIMITS.MAX_AQI_VALUE}
-          error={inlineError}
-          onChange={(val) => {
-            setAqiInput(val);
-            const res = validateManualAqi(val);
-            setInlineError(res.isValid ? null : (res.error?.message ?? null));
-          }}
-        />
-        <ManualMetricField
-          id="manual-pm25-input"
-          errorId="manual-pm25-error"
-          label={UI_LABELS.MANUAL_PM25_INPUT_LABEL}
-          value={pm25Input}
-          min={INPUT_LIMITS.MIN_AQI_VALUE}
-          max={INPUT_LIMITS.MAX_PM25_VALUE}
-          error={pm25Error}
-          onChange={(val) => {
-            setPm25Input(val);
-            const res = validateOptionalPm25(val);
-            setPm25Error(res.isValid ? null : (res.error?.message ?? null));
-          }}
-        />
-        <ManualMetricField
-          id="manual-pm10-input"
-          errorId="manual-pm10-error"
-          label={UI_LABELS.MANUAL_PM10_INPUT_LABEL}
-          value={pm10Input}
-          min={INPUT_LIMITS.MIN_AQI_VALUE}
-          max={INPUT_LIMITS.MAX_PM10_VALUE}
-          error={pm10Error}
-          onChange={(val) => {
-            setPm10Input(val);
-            const res = validateOptionalPm10(val);
-            setPm10Error(res.isValid ? null : (res.error?.message ?? null));
-          }}
-        />
-      </div>
-
+      <ManualMetricsGrid
+        aqiInput={fields.aqiInput}
+        pm25Input={fields.pm25Input}
+        pm10Input={fields.pm10Input}
+        inlineError={fields.inlineError}
+        pm25Error={fields.pm25Error}
+        pm10Error={fields.pm10Error}
+        onAqiChange={fields.onAqiChange}
+        onPm25Change={fields.onPm25Change}
+        onPm10Change={fields.onPm10Change}
+      />
       <button
         type="submit"
-        disabled={isLoading || Boolean(inlineError) || Boolean(pm25Error) || Boolean(pm10Error)}
+        disabled={isLoading || hasError}
         className="inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
       >
         {UI_LABELS.MANUAL_AQI_SUBMIT_LABEL}

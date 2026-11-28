@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { HourlyPm25Point } from '../../types/index.ts';
-import { findBestOutdoorWindow } from '../../utils/outdoorWindow.ts';
+import type { HourlyPm25Point } from '@shared/types/index.ts';
+import { findBestOutdoorWindow } from '@shared/utils/outdoorWindow.ts';
 
 describe('findBestOutdoorWindow', () => {
   it('finds the lowest-exposure continuous window across hourly PM2.5 data', () => {

@@ -1,16 +1,8 @@
 import type { ReactElement } from 'react';
 
-/**
- * Calm inline SVG illustration for the empty state before a plan is generated.
- */
-export function EmptyIllustration(): ReactElement {
+function EmptySkylineShapes(): ReactElement {
   return (
-    <svg
-      viewBox="0 0 220 130"
-      fill="none"
-      aria-hidden="true"
-      className="mx-auto h-32 w-56 text-teal-600 dark:text-teal-400"
-    >
+    <>
       <circle cx="110" cy="64" r="52" className="fill-teal-50 dark:fill-teal-950/60" />
       <rect
         x="48"
@@ -46,6 +38,22 @@ export function EmptyIllustration(): ReactElement {
         strokeWidth="2"
         strokeLinecap="round"
       />
+    </>
+  );
+}
+
+/**
+ * Calm inline SVG illustration for the empty state before a plan is generated.
+ */
+export function EmptyIllustration(): ReactElement {
+  return (
+    <svg
+      viewBox="0 0 220 130"
+      fill="none"
+      aria-hidden="true"
+      className="mx-auto h-32 w-56 text-teal-600 dark:text-teal-400"
+    >
+      <EmptySkylineShapes />
       <path
         d="M36 42c16 0 24-10 38-10 10 0 16 6 16 12s-6 10-14 10H44"
         stroke="currentColor"

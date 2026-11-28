@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { AqiCategoryId, RecommendationCategory } from '../../types/index.ts';
+import { AqiCategoryId, RecommendationCategory } from '@shared/types/index.ts';
 import {
   calculateTotalPM25Reduction,
   getAqiCategoryByValue,
   getAqiCategoryInfo,
 } from '../../utils/aqiCalculations.ts';
-import { clampRounded } from '../../utils/math.ts';
+import { clampRounded } from '@shared/utils/math.ts';
 
 describe('math and AQI calculation utilities', () => {
   it('clamps and rounds values inclusively and handles non-finite numbers', () => {

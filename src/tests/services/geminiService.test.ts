@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
-import { SAFE_FALLBACK_ASSISTANT_RESPONSE } from '../../constants/prompts.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
+import { SAFE_FALLBACK_ASSISTANT_RESPONSE } from '@shared/constants/prompts.ts';
 import { getAirQualityRecommendations } from '../../services/geminiService.ts';
 import {
   AqiCategoryId,
   type AqiData,
   ErrorCode,
   RecommendationCategory,
-} from '../../types/index.ts';
+} from '@shared/types/index.ts';
 
 const SAMPLE_AQI_DATA: AqiData = {
   city: 'Delhi',
@@ -54,7 +54,7 @@ describe('geminiService', () => {
     const result = await getAirQualityRecommendations(DEFAULT_USER_PROFILE, SAMPLE_AQI_DATA);
     expect(result.isFallback).toBe(false);
     expect(result.recommendations).toHaveLength(1);
-    expect(result.recommendations[0].estimatedPM25Reduction).toBe(55);
+    expect(result.recommendations[0]?.estimatedPM25Reduction).toBe(55);
   });
 
   it('falls back safely when the server returns unparseable rawText', async () => {

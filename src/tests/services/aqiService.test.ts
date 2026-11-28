@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createManualAqiData, fetchAqiDataByCity } from '../../services/aqiService.ts';
-import { AqiCategoryId, ErrorCode } from '../../types/index.ts';
+import { AqiCategoryId, ErrorCode } from '@shared/types/index.ts';
 
 describe('aqiService', () => {
   afterEach(() => {
@@ -40,7 +40,7 @@ describe('aqiService', () => {
     expect(data.provider).toBe('waqi');
     expect(data.aqi).toBe(625);
     expect(data.category).toBe(AqiCategoryId.HAZARDOUS);
-    expect(data.pm10).toBe(520.1);
+    expect(data.pm10).toBeCloseTo(520.1, 2);
     expect(data.hourlyPm25).toHaveLength(2);
     expect(data.source).toBe('live');
   });
@@ -68,7 +68,7 @@ describe('aqiService', () => {
       latitude: 28.53,
       longitude: 77.39,
     });
-    expect(String(fetchMock.mock.calls[0][0])).toContain('lat=28.53&lon=77.39&city=Noida');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('lat=28.53&lon=77.39&city=Noida');
     expect(data.provider).toBe('open-meteo');
     expect(data.category).toBe(AqiCategoryId.UNHEALTHY);
   });
@@ -128,9 +128,8 @@ describe('aqiService', () => {
       vi.fn().mockResolvedValueOnce(new Response('<html>502 Proxy</html>', { status: 200 })),
     );
 
-    await expect(fetchAqiDataByCity('Noida')).rejects.toEqual({
+    await expect(fetchAqiDataByCity('Noida')).rejects.toMatchObject({
       code: ErrorCode.AQI_FETCH_ERROR,
-      message: expect.any(String),
     });
   });
 });

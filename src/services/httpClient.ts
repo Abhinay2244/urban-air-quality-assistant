@@ -3,12 +3,20 @@
  * Responsibility: Execute fetch requests, normalize network/server errors, and validate JSON shapes.
  * Must not hold React state, access Express internals, or swallow AbortError cancellations.
  */
-import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http.ts';
-import { INPUT_LIMITS } from '../constants/limits.ts';
-import { type AppError, ErrorCode } from '../types/index.ts';
-import { createAppError, isAppError } from '../utils/errors.ts';
-import { sanitizeText } from '../utils/sanitizing.ts';
-import { isRecord } from '../utils/typeGuards.ts';
+import { ERROR_MESSAGES, HTTP_STATUS } from '@shared/constants/http.ts';
+import { INPUT_LIMITS } from '@shared/constants/limits.ts';
+import { type AppError, ErrorCode } from '@shared/types/index.ts';
+import { createAppError, isAppError } from '@shared/utils/errors.ts';
+import { sanitizeText } from '@shared/utils/sanitizing.ts';
+import { isRecord } from '@shared/utils/typeGuards.ts';
+
+/** Options configuring fallback error contract and runtime payload guard for fetchJsonOrThrow. */
+export interface FetchJsonOptions<T> {
+  init?: RequestInit;
+  fallbackCode: ErrorCode;
+  fallbackMessage: string;
+  guard: (raw: unknown) => raw is T;
+}
 
 /**
  * Checks whether an unknown thrown value represents a cancelled fetch AbortError.
@@ -48,7 +56,7 @@ function resolveHttpError(
   errorPayload: unknown,
   fallbackCode: ErrorCode,
   fallbackMessage: string,
-): AppError {
+): Error & AppError {
   if (isAppError(errorPayload)) {
     const cleanMessage = sanitizeText(errorPayload.message, INPUT_LIMITS.MAX_TEXT_LENGTH);
     if (cleanMessage.length > 0) {
@@ -71,13 +79,8 @@ function resolveHttpError(
  * Fetches JSON from a client API endpoint, mapping fetch TypeErrors to NETWORK_ERROR,
  * rethrowing AbortError unmodified, propagating server AppErrors, and validating the payload.
  */
-export async function fetchJsonOrThrow<T>(
-  url: string,
-  init: RequestInit | undefined,
-  fallbackCode: ErrorCode,
-  fallbackMessage: string,
-  guard: (raw: unknown) => raw is T,
-): Promise<T> {
+export async function fetchJsonOrThrow<T>(url: string, options: FetchJsonOptions<T>): Promise<T> {
+  const { init, fallbackCode, fallbackMessage, guard } = options;
   let response: Response;
   try {
     response = await fetch(url, init);

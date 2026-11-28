@@ -1,27 +1,38 @@
 /**
  * @module server/app
- * Responsibility: Wire Express middleware, /api routes, JSON 404/error handlers, and frontend serving.
+ * Responsibility: Composition root wiring middleware, /api routes, JSON 404/error handlers, and frontend serving.
  * Must not contain AQI provider parsing, Gemini prompt assembly, or direct process.listen() calls.
  */
-import 'dotenv/config';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { API_ENDPOINTS, ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../src/constants/http.ts';
-import { SERVER_CONFIG } from '../src/constants/server.ts';
-import { isRecord } from '../src/utils/typeGuards.ts';
-import { handleLiveAqiLookup } from './aqiHandler.ts';
-import { handleIndianCitySearch } from './citiesHandler.ts';
-import { sendErrorResponse } from './errorResponse.ts';
-import { createAssistantRecommendationsHandler } from './geminiHandler.ts';
-import { applySecurityHeaders, createApiRateLimiter } from './securityMiddleware.ts';
+import {
+  API_ENDPOINTS,
+  ERROR_CODES,
+  ERROR_MESSAGES,
+  HTTP_STATUS,
+} from '../shared/constants/http.ts';
+import { SERVER_CONFIG } from '../shared/constants/server.ts';
+import { isRecord } from '../shared/utils/typeGuards.ts';
+import { serverConfig, type ServerEnvConfig } from './lib/config.ts';
+import { sendErrorResponse } from './lib/errorResponse.ts';
+import {
+  enforceSameOriginCors,
+  rejectUnsupportedMethod,
+  requireJsonContentType,
+} from './middleware/httpHardeningMiddleware.ts';
+import { createRequestContextMiddleware } from './middleware/requestContext.ts';
+import { applySecurityHeaders, createApiRateLimiter } from './middleware/securityMiddleware.ts';
+import { DEFAULT_PROVIDER_DEPS, type ProviderDeps } from './providers/providerDeps.ts';
+import { createLiveAqiHandler } from './routes/aqiHandler.ts';
+import { createCitiesHandler } from './routes/citiesHandler.ts';
+import { createAssistantRecommendationsHandler } from './routes/geminiHandler.ts';
+import { handleHealthCheck } from './routes/healthHandler.ts';
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_DIR = path.resolve(ROOT_DIR, 'dist');
 const INDEX_HTML_PATH = path.resolve(DIST_DIR, 'index.html');
-const PRODUCTION_ENV = 'production';
-const TEST_ENV = 'test';
 const ENTITY_TOO_LARGE_TYPE = 'entity.too.large';
 
 function apiErrorMiddleware(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
@@ -37,7 +48,6 @@ function apiErrorMiddleware(err: unknown, _req: Request, res: Response, _next: N
     );
     return;
   }
-
   if (err instanceof SyntaxError && errStatus === HTTP_STATUS.BAD_REQUEST) {
     sendErrorResponse(
       res,
@@ -47,7 +57,6 @@ function apiErrorMiddleware(err: unknown, _req: Request, res: Response, _next: N
     );
     return;
   }
-
   sendErrorResponse(
     res,
     HTTP_STATUS.INTERNAL_SERVER_ERROR,
@@ -56,9 +65,7 @@ function apiErrorMiddleware(err: unknown, _req: Request, res: Response, _next: N
   );
 }
 
-/**
- * Resolves the TCP port from the PORT environment variable, falling back to SERVER_CONFIG.PORT (3000).
- */
+/** Resolves the TCP port from a raw string, falling back to SERVER_CONFIG.PORT (3000). */
 export function resolveServerPort(rawPort: string | undefined): number {
   if (!rawPort) return SERVER_CONFIG.PORT;
   const parsed = Number(rawPort);
@@ -68,20 +75,41 @@ export function resolveServerPort(rawPort: string | undefined): number {
 }
 
 /**
- * Configures and returns the Express application with security middleware, API routes,
- * JSON 404/error handlers, and production static or Vite dev frontend serving.
+ * Configures and returns the Express application composition root with injected provider deps.
  */
-export async function createApp(): Promise<Express> {
+export async function createApp(
+  config: ServerEnvConfig = serverConfig,
+  deps: Partial<ProviderDeps> = {},
+): Promise<Express> {
   const app = express();
-  const isProduction = process.env.NODE_ENV === PRODUCTION_ENV;
+  const providerDeps: ProviderDeps = { ...DEFAULT_PROVIDER_DEPS, ...deps };
 
+  app.disable('x-powered-by');
   app.set('trust proxy', 1);
-  app.use(applySecurityHeaders(isProduction));
+  app.use(createRequestContextMiddleware());
+  app.use(applySecurityHeaders(config.isProduction));
+  app.use(API_ENDPOINTS.API_PREFIX, enforceSameOriginCors());
   app.use(express.json({ limit: SERVER_CONFIG.JSON_BODY_LIMIT }));
-  app.use(API_ENDPOINTS.API_PREFIX, createApiRateLimiter());
-  app.get(API_ENDPOINTS.AQI_LIVE, handleLiveAqiLookup);
-  app.get(API_ENDPOINTS.CITIES_SEARCH, handleIndianCitySearch);
-  app.post(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, createAssistantRecommendationsHandler());
+  app.use(
+    API_ENDPOINTS.API_PREFIX,
+    createApiRateLimiter(undefined, undefined, undefined, providerDeps.now),
+  );
+
+  app.get(API_ENDPOINTS.HEALTH, handleHealthCheck);
+  app.all(API_ENDPOINTS.HEALTH, rejectUnsupportedMethod(['GET']));
+
+  app.get(API_ENDPOINTS.AQI_LIVE, createLiveAqiHandler(config, providerDeps));
+  app.all(API_ENDPOINTS.AQI_LIVE, rejectUnsupportedMethod(['GET']));
+
+  app.get(API_ENDPOINTS.CITIES_SEARCH, createCitiesHandler(providerDeps));
+  app.all(API_ENDPOINTS.CITIES_SEARCH, rejectUnsupportedMethod(['GET']));
+
+  app.post(
+    API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS,
+    requireJsonContentType(),
+    createAssistantRecommendationsHandler(undefined, config, providerDeps.now),
+  );
+  app.all(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, rejectUnsupportedMethod(['POST']));
 
   app.use(API_ENDPOINTS.API_PREFIX, (_req: Request, res: Response): void => {
     sendErrorResponse(
@@ -93,11 +121,8 @@ export async function createApp(): Promise<Express> {
   });
   app.use(apiErrorMiddleware);
 
-  if (process.env.NODE_ENV === TEST_ENV || process.env.VITEST === 'true') {
-    return app;
-  }
-
-  if (isProduction && fs.existsSync(DIST_DIR)) {
+  if (config.isTest) return app;
+  if (config.isProduction && fs.existsSync(DIST_DIR)) {
     app.use(express.static(DIST_DIR));
     app.get('*', (_req, res) => {
       res.sendFile(INDEX_HTML_PATH);
@@ -106,10 +131,7 @@ export async function createApp(): Promise<Express> {
   }
 
   const { createServer: createViteServer } = await import('vite');
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: 'spa',
-  });
+  const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
   app.use(vite.middlewares);
   return app;
 }

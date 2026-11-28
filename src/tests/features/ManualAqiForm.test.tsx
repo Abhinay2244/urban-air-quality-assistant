@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { UI_LABELS } from '../../constants/config.ts';
-import { ERROR_MESSAGES } from '../../constants/http.ts';
+import { UI_LABELS } from '@shared/constants/config.ts';
+import { ERROR_MESSAGES } from '@shared/constants/http.ts';
 import { ManualAqiForm } from '../../features/impact/ManualAqiForm.tsx';
 
 afterEach(() => {

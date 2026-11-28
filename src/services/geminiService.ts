@@ -3,17 +3,21 @@
  * Responsibility: Request AI recommendations from the server endpoint and return parsed, validated responses.
  * Must not embed Gemini API keys, manage UI state, or apply dynamic urgency rules directly.
  */
-import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants/http.ts';
+import { API_ENDPOINTS, ERROR_MESSAGES } from '@shared/constants/http.ts';
 import {
   type AqiData,
   type AssistantResponse,
   ErrorCode,
   type UserProfile,
-} from '../types/index.ts';
-import { parseAndValidateAssistantResponse } from '../utils/assistantParser.ts';
-import { createAppError, toAppError } from '../utils/errors.ts';
-import { isRecord } from '../utils/typeGuards.ts';
-import { unwrapValidation, validateAqiData, validateUserProfile } from '../utils/validation.ts';
+} from '@shared/types/index.ts';
+import { parseAndValidateAssistantResponse } from '@shared/utils/assistantParser.ts';
+import { createAppError, toAppError } from '@shared/utils/errors.ts';
+import { isRecord } from '@shared/utils/typeGuards.ts';
+import {
+  unwrapValidation,
+  validateAqiData,
+  validateUserProfile,
+} from '@shared/utils/validation.ts';
 import { fetchJsonOrThrow, isAbortError } from './httpClient.ts';
 
 interface ServerAssistantPayload {
@@ -40,18 +44,17 @@ export async function getAirQualityRecommendations(
   }
 
   try {
-    const payload = await fetchJsonOrThrow(
-      API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS,
-      {
+    const payload = await fetchJsonOrThrow(API_ENDPOINTS.ASSISTANT_RECOMMENDATIONS, {
+      init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile: safeProfile, aqiData }),
-        signal,
+        ...(signal !== undefined ? { signal } : {}),
       },
-      ErrorCode.AI_SERVICE_ERROR,
-      ERROR_MESSAGES.AI_REQUEST_FAILED,
-      isServerAssistantPayload,
-    );
+      fallbackCode: ErrorCode.AI_SERVICE_ERROR,
+      fallbackMessage: ERROR_MESSAGES.AI_REQUEST_FAILED,
+      guard: isServerAssistantPayload,
+    });
 
     return parseAndValidateAssistantResponse(payload.rawText);
   } catch (error: unknown) {

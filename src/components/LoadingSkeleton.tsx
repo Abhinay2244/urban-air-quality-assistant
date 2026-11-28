@@ -1,6 +1,6 @@
 import { type ReactElement, useEffect, useState } from 'react';
-import { APP_TEXT } from '../constants/config.ts';
-import { INPUT_LIMITS } from '../constants/limits.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
+import { INPUT_LIMITS } from '@shared/constants/limits.ts';
 
 const SKELETON_SECTION_COUNT = 4;
 
@@ -14,7 +14,9 @@ export function LoadingSkeleton(): ReactElement {
     const timer = window.setTimeout(() => {
       setShowSlowNote(true);
     }, INPUT_LIMITS.SLOW_LOADING_NOTE_DELAY_MS);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, []);
 
   return (

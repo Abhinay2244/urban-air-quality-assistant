@@ -1,8 +1,8 @@
 import type { ReactElement } from 'react';
-import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { APP_TEXT, UI_LABELS } from '@shared/constants/config.ts';
 import { SECTION_THEMES } from '../../constants/uiTheme.ts';
-import { type Recommendation, UrgencyLevel } from '../../types/index.ts';
-import { formatUrgencyLabel } from '../../utils/formatting.ts';
+import { type Recommendation, UrgencyLevel } from '@shared/types/index.ts';
+import { formatUrgencyLabel } from '@shared/utils/formatting.ts';
 
 /**
  * Props for RecommendationCard component.
@@ -23,7 +23,7 @@ const URGENCY_BADGE_STYLES: Record<UrgencyLevel, string> = {
 /**
  * Displays a single recommendation card with urgency badge, action, and highlighted impact strip.
  */
-export function RecommendationCard({ item }: RecommendationCardProps): ReactElement {
+export function RecommendationCard({ item }: Readonly<RecommendationCardProps>): ReactElement {
   const urgency = item.urgency ?? UrgencyLevel.STANDARD;
   const cardBorder = SECTION_THEMES[item.category].cardBorder;
 

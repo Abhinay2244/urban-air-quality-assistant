@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { UrgencyLevel } from '../../types/index.ts';
-import { formatClockTime, formatPM25Value, formatUrgencyLabel } from '../../utils/formatting.ts';
+import { UrgencyLevel } from '@shared/types/index.ts';
+import { formatClockTime, formatPM25Value, formatUrgencyLabel } from '@shared/utils/formatting.ts';
 
 describe('formatting utilities', () => {
   it('formats PM2.5 readings with units and guards negative numbers', () => {

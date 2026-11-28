@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ErrorCode } from '../../types/index.ts';
-import { createAppError, isAppError, toAppError } from '../../utils/errors.ts';
+import { ErrorCode } from '@shared/types/index.ts';
+import { createAppError, isAppError, toAppError } from '@shared/utils/errors.ts';
 
 describe('error utilities', () => {
   it('validates AppError shapes via isAppError', () => {
@@ -16,7 +16,8 @@ describe('error utilities', () => {
 
     const rawError = new Error('Unexpected token < in JSON at position 0');
     const converted = toAppError(rawError, ErrorCode.AI_SERVICE_ERROR, 'Safe user message');
-    expect(converted).toEqual({
+    expect(converted).toBeInstanceOf(Error);
+    expect(converted).toMatchObject({
       code: ErrorCode.AI_SERVICE_ERROR,
       message: 'Safe user message',
     });

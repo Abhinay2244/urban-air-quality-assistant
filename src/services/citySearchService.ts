@@ -3,9 +3,9 @@
  * Responsibility: Query /api/cities for India-only Open-Meteo geocoding suggestions.
  * Must not hold UI state or modify profile form values directly.
  */
-import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants/http.ts';
-import { type CitySearchResult, ErrorCode } from '../types/index.ts';
-import { isRecord } from '../utils/typeGuards.ts';
+import { API_ENDPOINTS, ERROR_MESSAGES } from '@shared/constants/http.ts';
+import { type CitySearchResult, ErrorCode } from '@shared/types/index.ts';
+import { isRecord } from '@shared/utils/typeGuards.ts';
 import { fetchJsonOrThrow } from './httpClient.ts';
 
 interface CitySearchPayload {
@@ -36,12 +36,11 @@ export async function searchIndianCitiesClient(
   signal?: AbortSignal,
 ): Promise<CitySearchResult[]> {
   const url = `${API_ENDPOINTS.CITIES_SEARCH}?q=${encodeURIComponent(query)}`;
-  const payload = await fetchJsonOrThrow(
-    url,
-    { signal },
-    ErrorCode.AQI_FETCH_ERROR,
-    ERROR_MESSAGES.AQI_FETCH_FAILED,
-    isCitySearchPayload,
-  );
+  const payload = await fetchJsonOrThrow(url, {
+    ...(signal !== undefined ? { init: { signal } } : {}),
+    fallbackCode: ErrorCode.AQI_FETCH_ERROR,
+    fallbackMessage: ERROR_MESSAGES.AQI_FETCH_FAILED,
+    guard: isCitySearchPayload,
+  });
   return payload.cities;
 }

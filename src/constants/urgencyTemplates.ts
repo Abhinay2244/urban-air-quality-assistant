@@ -3,7 +3,7 @@
  * Responsibility: Provide static recommendation templates and labels used by the urgency rule engine.
  * Must not execute rule logic, evaluate profiles, or depend on UI/service modules.
  */
-import { RecommendationCategory, UrgencyLevel } from '../types/index.ts';
+import { RecommendationCategory, UrgencyLevel } from '@shared/types/index.ts';
 
 /**
  * Audience labels and US-scale Unhealthy (151+ all) / USG (101+ sensitive) protective alert template.

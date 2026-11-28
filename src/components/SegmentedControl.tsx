@@ -15,7 +15,7 @@ interface SegmentedOption<T extends string> {
 export interface SegmentedControlProps<T extends string> {
   legend: string;
   value: T;
-  options: ReadonlyArray<SegmentedOption<T>>;
+  options: readonly SegmentedOption<T>[];
   onChange: (nextValue: T) => void;
 }
 
@@ -27,7 +27,7 @@ export function SegmentedControl<T extends string>({
   value,
   options,
   onChange,
-}: SegmentedControlProps<T>): ReactElement {
+}: Readonly<SegmentedControlProps<T>>): ReactElement {
   return (
     <fieldset className="space-y-2">
       <legend className="text-sm font-semibold text-slate-800 dark:text-slate-200">{legend}</legend>
@@ -47,7 +47,9 @@ export function SegmentedControl<T extends string>({
               key={option.value}
               type="button"
               aria-pressed={isSelected}
-              onClick={() => onChange(option.value)}
+              onClick={() => {
+                onChange(option.value);
+              }}
               className={`flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors duration-150 ${stateStyle}`}
             >
               {option.icon && (

@@ -33,7 +33,7 @@
   }
 
   progress::-webkit-progress-value {
-    background-color: #0d9488;
+    background-color: #0f766e;
     border-radius: 9999px;
     transition: width 200ms ease;
   }
@@ -43,7 +43,7 @@
   }
 
   progress::-moz-progress-bar {
-    background-color: #0d9488;
+    background-color: #0f766e;
     border-radius: 9999px;
   }
 

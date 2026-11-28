@@ -26,7 +26,7 @@ export function ManualMetricField({
   max,
   error,
   onChange,
-}: ManualMetricFieldProps): ReactElement {
+}: Readonly<ManualMetricFieldProps>): ReactElement {
   return (
     <div className="space-y-1.5 text-sm">
       <label htmlFor={id} className="block font-semibold text-slate-800 dark:text-slate-200">
@@ -40,7 +40,9 @@ export function ManualMetricField({
         value={value}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : undefined}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
         className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-base text-slate-900 tabular-nums dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
       />
       {error && (

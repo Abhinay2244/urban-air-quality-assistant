@@ -1,9 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { INPUT_LIMITS } from '../../constants/limits.ts';
-import { useCityAutocomplete } from '../../features/profile/useCityAutocomplete.ts';
+import { INPUT_LIMITS } from '@shared/constants/limits.ts';
+import { useCityAutocomplete } from '../../hooks/useCityAutocomplete.ts';
 import * as citySearchService from '../../services/citySearchService.ts';
-import type { CitySearchResult } from '../../types/index.ts';
+import type { CitySearchResult } from '@shared/types/index.ts';
 
 describe('useCityAutocomplete cancellation and debounce', () => {
   afterEach(() => {
@@ -13,7 +13,7 @@ describe('useCityAutocomplete cancellation and debounce', () => {
 
   it('aborts stale /api/cities requests and ignores out-of-order responses when query changes', async () => {
     vi.useFakeTimers();
-    const signals: Array<AbortSignal | undefined> = [];
+    const signals: (AbortSignal | undefined)[] = [];
     let resolveFirst: ((cities: CitySearchResult[]) => void) | undefined;
 
     vi.spyOn(citySearchService, 'searchIndianCitiesClient')
@@ -24,9 +24,11 @@ describe('useCityAutocomplete cancellation and debounce', () => {
             resolveFirst = resolve;
           }),
       )
-      .mockImplementationOnce(async (_query, signal) => {
+      .mockImplementationOnce((_query, signal) => {
         signals.push(signal);
-        return [{ name: 'Noida', country: 'India', latitude: 28.53, longitude: 77.39 }];
+        return Promise.resolve([
+          { name: 'Noida', country: 'India', latitude: 28.53, longitude: 77.39 },
+        ]);
       });
 
     const { result } = renderHook(() => useCityAutocomplete());

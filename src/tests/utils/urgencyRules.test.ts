@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
 import {
   AqiCategoryId,
   type AqiData,
@@ -8,7 +8,7 @@ import {
   HomeType,
   RecommendationCategory,
   UrgencyLevel,
-} from '../../types/index.ts';
+} from '@shared/types/index.ts';
 import { getAqiCategoryByValue } from '../../utils/aqiCalculations.ts';
 import { applyUrgencyRules } from '../../utils/urgencyRules.ts';
 
@@ -61,9 +61,9 @@ describe('applyUrgencyRules (US EPA safety boundaries)', () => {
     expect(at100.recommendations.some((r) => r.action.toLowerCase().includes('n95'))).toBe(false);
 
     const at101 = applyUrgencyRules(BASE_RESPONSE, vulnerableProfile, makeAqi(101));
-    expect(at101.recommendations[0].category).toBe(RecommendationCategory.HEALTH_ALERT);
-    expect(at101.recommendations[0].urgency).toBe(UrgencyLevel.CRITICAL);
-    expect(at101.recommendations[0].action.toLowerCase()).toContain('n95');
+    expect(at101.recommendations[0]?.category).toBe(RecommendationCategory.HEALTH_ALERT);
+    expect(at101.recommendations[0]?.urgency).toBe(UrgencyLevel.CRITICAL);
+    expect(at101.recommendations[0]?.action.toLowerCase()).toContain('n95');
     expect(at101.priorityGuidance.toLowerCase()).toContain('stay indoors');
   });
 
@@ -82,9 +82,9 @@ describe('applyUrgencyRules (US EPA safety boundaries)', () => {
     expect(at150.recommendations.some((r) => r.action.toLowerCase().includes('n95'))).toBe(false);
 
     const at151 = applyUrgencyRules(BASE_RESPONSE, healthyProfile, makeAqi(151));
-    expect(at151.recommendations[0].category).toBe(RecommendationCategory.HEALTH_ALERT);
-    expect(at151.recommendations[0].urgency).toBe(UrgencyLevel.CRITICAL);
-    expect(at151.recommendations[0].action.toLowerCase()).toContain('n95');
+    expect(at151.recommendations[0]?.category).toBe(RecommendationCategory.HEALTH_ALERT);
+    expect(at151.recommendations[0]?.urgency).toBe(UrgencyLevel.CRITICAL);
+    expect(at151.recommendations[0]?.action.toLowerCase()).toContain('n95');
     expect(at151.priorityGuidance).toContain('151');
   });
 
@@ -98,9 +98,13 @@ describe('applyUrgencyRules (US EPA safety boundaries)', () => {
       walkerResult.recommendations.some((r) => r.title.includes('Active Outdoor Commuting')),
     ).toBe(true);
 
+    const secondRec = BASE_RESPONSE.recommendations[1];
+    expect(secondRec).toBeDefined();
+    if (!secondRec) return;
+
     const goodNoAlerts: AssistantResponse = {
       ...BASE_RESPONSE,
-      recommendations: [BASE_RESPONSE.recommendations[1]],
+      recommendations: [secondRec],
     };
     const goodResult = applyUrgencyRules(
       goodNoAlerts,

@@ -1,4 +1,4 @@
-import { PROFILE_OPTIONS, UI_LABELS } from '../../constants/config.ts';
+import { PROFILE_OPTIONS, UI_LABELS } from '@shared/constants/config.ts';
 
 /**
  * Metadata driving Household Type segmented choices.

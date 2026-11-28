@@ -3,10 +3,10 @@
  * Responsibility: Provide sample household profiles for quick empty-state exploration.
  * Must not trigger network requests, validate inputs, or store mutable application state.
  */
-import { CommuteMode, FamilyType, HomeType, type UserProfile } from '../types/index.ts';
+import { CommuteMode, FamilyType, HomeType, type UserProfile } from '@shared/types/index.ts';
 
 /** Sample household scenarios shown in the empty state to help users explore quickly. */
-export const SAMPLE_SCENARIOS: ReadonlyArray<{ label: string; profile: UserProfile }> = [
+export const SAMPLE_SCENARIOS: readonly { label: string; profile: UserProfile }[] = [
   {
     label: 'Delhi · Parent with children',
     profile: {

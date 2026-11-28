@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ErrorBanner } from '../../components/ErrorBanner.tsx';
-import { UI_LABELS } from '../../constants/config.ts';
-import { ErrorCode } from '../../types/index.ts';
+import { UI_LABELS } from '@shared/constants/config.ts';
+import { ErrorCode } from '@shared/types/index.ts';
 
 afterEach(() => {
   cleanup();

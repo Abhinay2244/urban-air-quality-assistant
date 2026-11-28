@@ -12,10 +12,24 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist coverage",
-    "lint": "tsc --noEmit && eslint . --max-warnings 0",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "arch:check": "madge --ts-config tsconfig.json --extensions ts,tsx --circular shared src server server.ts",
+    "check": "npm run lint && npm run typecheck && npm run format:check && npm run arch:check && npm test && npm run build",
+    "prepare": "[ -d .git ] && husky || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,html}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@google/genai": "^3.6.0",
@@ -34,17 +48,27 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.1.2",
     "esbuild": "^0.25.0",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.18.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-sonarjs": "^4.2.3",
+    "husky": "^9.1.7",
     "jsdom": "^31.0.1",
+    "lint-staged": "^17.6.2",
+    "madge": "^8.0.0",
     "prettier": "^3.10.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.73.0",
     "vite": "^8.3.0",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "vitest-axe": "^0.1.0",
+    "yaml": "^2.9.1"
   }
 }

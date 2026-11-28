@@ -1,8 +1,8 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoadingSkeleton } from '../../components/LoadingSkeleton.tsx';
-import { APP_TEXT } from '../../constants/config.ts';
-import { INPUT_LIMITS } from '../../constants/limits.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
+import { INPUT_LIMITS } from '@shared/constants/limits.ts';
 
 describe('LoadingSkeleton', () => {
   afterEach(() => {

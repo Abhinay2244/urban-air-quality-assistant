@@ -5,12 +5,12 @@ import {
   MAX_STANDARD_AQI,
   WHO_PM10_GUIDELINE_UG_M3,
   WHO_PM25_GUIDELINE_UG_M3,
-} from '../../constants/aqi.ts';
-import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
-import { DEFAULT_COUNTRY } from '../../constants/server.ts';
+} from '@shared/constants/aqi.ts';
+import { APP_TEXT, UI_LABELS } from '@shared/constants/config.ts';
+import { DEFAULT_COUNTRY } from '@shared/constants/server.ts';
 import { AQI_VISUAL_TOKENS, UI_COPY } from '../../constants/uiTheme.ts';
-import type { AqiCategoryInfo, AqiData } from '../../types/index.ts';
-import { formatPM25Value, formatTimestamp } from '../../utils/formatting.ts';
+import type { AqiCategoryInfo, AqiData } from '@shared/types/index.ts';
+import { formatPM25Value, formatTimestamp } from '@shared/utils/formatting.ts';
 
 /** Props for AqiHeroCard component. */
 export interface AqiHeroCardProps {
@@ -27,6 +27,49 @@ function getSourceBadgeLabel(aqiData: AqiData): string {
   return APP_TEXT.LIVE_AQI_SOURCE_LABEL;
 }
 
+function AqiHeroFooter({
+  aqiData,
+  isAqiUnavailable,
+  onEnableManualAqi,
+}: Readonly<{
+  aqiData: AqiData;
+  isAqiUnavailable: boolean;
+  onEnableManualAqi: () => void;
+}>): ReactElement {
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-3.5 dark:border-slate-700/70">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+          {UI_LABELS.PM25_LABEL}: {formatPM25Value(aqiData.pm25)}{' '}
+          <span className="font-normal text-slate-600 dark:text-slate-300">
+            ({UI_LABELS.WHO_GUIDELINE_LABEL} {formatPM25Value(WHO_PM25_GUIDELINE_UG_M3)})
+          </span>
+        </span>
+        <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+          {UI_LABELS.PM10_LABEL}:{' '}
+          {aqiData.pm10 !== undefined ? formatPM25Value(aqiData.pm10) : APP_TEXT.NOT_AVAILABLE}{' '}
+          <span className="font-normal text-slate-600 dark:text-slate-300">
+            ({UI_LABELS.WHO_GUIDELINE_LABEL} {formatPM25Value(WHO_PM10_GUIDELINE_UG_M3)})
+          </span>
+        </span>
+        <span className="text-sm text-slate-600 dark:text-slate-400">
+          {aqiData.updatedAt ? formatTimestamp(aqiData.updatedAt) : APP_TEXT.NOT_AVAILABLE}
+        </span>
+      </div>
+
+      {!isAqiUnavailable && (
+        <button
+          type="button"
+          onClick={onEnableManualAqi}
+          className="inline-flex min-h-11 items-center rounded-xl px-2.5 text-sm font-semibold text-teal-800 underline underline-offset-4 hover:no-underline dark:text-teal-300"
+        >
+          {UI_LABELS.SWITCH_TO_MANUAL_LABEL}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /**
  * Displays the US-scale AQI circular gauge hero card, station, timestamp, source, WHO comparison, and warnings.
  */
@@ -35,7 +78,7 @@ export function AqiHeroCard({
   categoryInfo,
   isAqiUnavailable,
   onEnableManualAqi,
-}: AqiHeroCardProps): ReactElement {
+}: Readonly<AqiHeroCardProps>): ReactElement {
   const surfaceClass = AQI_VISUAL_TOKENS[categoryInfo.id].surfaceClass;
   const isAboveScale = aqiData.aqi > MAX_STANDARD_AQI;
   const placeHeadline =
@@ -84,36 +127,11 @@ export function AqiHeroCard({
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-3.5 dark:border-slate-700/70">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
-            {UI_LABELS.PM25_LABEL}: {formatPM25Value(aqiData.pm25)}{' '}
-            <span className="font-normal text-slate-600 dark:text-slate-300">
-              ({UI_LABELS.WHO_GUIDELINE_LABEL} {formatPM25Value(WHO_PM25_GUIDELINE_UG_M3)})
-            </span>
-          </span>
-          <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
-            {UI_LABELS.PM10_LABEL}:{' '}
-            {aqiData.pm10 !== undefined ? formatPM25Value(aqiData.pm10) : APP_TEXT.NOT_AVAILABLE}{' '}
-            <span className="font-normal text-slate-600 dark:text-slate-300">
-              ({UI_LABELS.WHO_GUIDELINE_LABEL} {formatPM25Value(WHO_PM10_GUIDELINE_UG_M3)})
-            </span>
-          </span>
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            {aqiData.updatedAt ? formatTimestamp(aqiData.updatedAt) : APP_TEXT.NOT_AVAILABLE}
-          </span>
-        </div>
-
-        {!isAqiUnavailable && (
-          <button
-            type="button"
-            onClick={onEnableManualAqi}
-            className="inline-flex min-h-11 items-center rounded-xl px-2.5 text-sm font-semibold text-teal-800 underline underline-offset-4 hover:no-underline dark:text-teal-300"
-          >
-            {UI_LABELS.SWITCH_TO_MANUAL_LABEL}
-          </button>
-        )}
-      </div>
+      <AqiHeroFooter
+        aqiData={aqiData}
+        isAqiUnavailable={isAqiUnavailable}
+        onEnableManualAqi={onEnableManualAqi}
+      />
     </div>
   );
 }

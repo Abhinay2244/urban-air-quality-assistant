@@ -1,0 +1,107 @@
+/**
+ * @module constants/server
+ * Responsibility: Centralize Express server, security header, rate-limit, and Gemini runtime config.
+ * Must not contain secrets, API keys, Express middleware logic, or browser/UI references.
+ */
+
+/**
+ * Default fallback country label shared by client display and server AQI providers.
+ */
+export const DEFAULT_COUNTRY = 'Unknown';
+
+/**
+ * Server network binding, body limits, and upstream request timeout configuration.
+ */
+export const SERVER_CONFIG = {
+  PORT: 3000,
+  MAX_PORT: 65535,
+  HOST: '0.0.0.0',
+  PROVIDER_TIMEOUT_MS: 8000,
+  REQUEST_TIMEOUT_MS: 60_000,
+  JSON_BODY_LIMIT: '16kb',
+  GEOCODING_RESULT_COUNT: 5,
+} as const;
+
+/**
+ * Per-IP in-memory rate limit parameters for API routes.
+ */
+export const RATE_LIMIT_CONFIG = {
+  WINDOW_MS: 60_000,
+  MAX_REQUESTS: 30,
+  MS_PER_SECOND: 1000,
+  MAX_TRACKED_IPS: 1000,
+} as const;
+
+/**
+ * HTTP security header values and Content-Security-Policy rules for Vite builds.
+ */
+export const SECURITY_HEADERS = {
+  CONTENT_TYPE_OPTIONS: 'nosniff',
+  FRAME_OPTIONS: 'SAMEORIGIN',
+  REFERRER_POLICY: 'strict-origin-when-cross-origin',
+  PERMISSIONS_POLICY: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+  CROSS_ORIGIN_OPENER_POLICY: 'same-origin',
+  CROSS_ORIGIN_RESOURCE_POLICY: 'same-origin',
+  DNS_PREFETCH_CONTROL: 'off',
+  STRICT_TRANSPORT_SECURITY: 'max-age=31536000; includeSubDomains',
+  PROD_CSP:
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+  DEV_CSP:
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'",
+} as const;
+
+/**
+ * Allowed HTTP methods and headers for explicit same-origin CORS responses.
+ */
+export const CORS_POLICY_CONFIG = {
+  ALLOWED_METHODS: 'GET, POST',
+  ALLOWED_HEADERS: 'Content-Type',
+  JSON_MEDIA_TYPE: 'application/json',
+} as const;
+
+/**
+ * Ordered Gemini model chain tried in priority order on transient busy, timeout, or availability errors.
+ */
+export const GEMINI_MODEL_CHAIN = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'] as const;
+
+/**
+ * Gemini API payload formatting, output budget, retry delay, and timeout configuration.
+ */
+export const GEMINI_CONFIG = {
+  USER_AGENT: 'aistudio-build',
+  RESPONSE_MIME_TYPE: 'application/json',
+  MAX_OUTPUT_TOKENS: 4096,
+  RETRY_DELAY_MS: 800,
+  PER_ATTEMPT_TIMEOUT_MS: 20_000,
+  TOTAL_TIMEOUT_MS: 45_000,
+} as const;
+
+/**
+ * Bounded in-memory cache configuration for validated non-fallback Gemini recommendations.
+ */
+export const GEMINI_CACHE_CONFIG = {
+  TTL_MS: 10 * 60 * 1000,
+  MAX_ENTRIES: 100,
+  AQI_BUCKET_SIZE: 10,
+} as const;
+
+/**
+ * Environment variable validation defaults and placeholder tokens.
+ */
+export const ENV_CONFIG = {
+  ALLOWED_NODE_ENVS: ['development', 'production', 'test'] as const,
+  DEFAULT_NODE_ENV: 'development',
+  GEMINI_PLACEHOLDER: 'MY_GEMINI_API_KEY',
+  AQI_PLACEHOLDER: 'MY_AQI_API_KEY',
+} as const;
+
+/**
+ * HTTP request correlation, health check, and structured log redaction constants.
+ */
+export const OBSERVABILITY_CONFIG = {
+  REQUEST_ID_HEADER: 'x-request-id',
+  MAX_REQUEST_ID_LENGTH: 128,
+  HEALTH_STATUS_OK: 'ok',
+  REDACTED_VALUE: '[REDACTED]',
+  MIN_SECRET_LENGTH: 4,
+} as const;

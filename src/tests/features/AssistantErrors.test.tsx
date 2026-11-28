@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../../App.tsx';
-import { APP_TEXT } from '../../constants/config.ts';
-import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '../../constants/http.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
+import { ERROR_CODES, ERROR_MESSAGES, HTTP_STATUS } from '@shared/constants/http.ts';
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {

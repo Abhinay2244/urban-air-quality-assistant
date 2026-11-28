@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SLOT_ACTION_COPY } from '../../constants/dailyPlan.ts';
-import { buildDailyPlanSlots } from '../../utils/dailyPlan.ts';
+import { SLOT_ACTION_COPY } from '@shared/constants/dailyPlan.ts';
+import { buildDailyPlanSlots } from '@shared/utils/dailyPlan.ts';
 
 describe('buildDailyPlanSlots', () => {
   it('aggregates hourly PM2.5 readings into Morning, Afternoon, and Evening slots', () => {
@@ -42,9 +42,9 @@ describe('buildDailyPlanSlots', () => {
     ]);
 
     expect(slots).toHaveLength(1);
-    expect(slots[0].id).toBe('afternoon');
-    expect(slots[0].averagePm25).toBe(45);
-    expect(slots[0].action).toBe(SLOT_ACTION_COPY.MODERATE);
+    expect(slots[0]?.id).toBe('afternoon');
+    expect(slots[0]?.averagePm25).toBe(45);
+    expect(slots[0]?.action).toBe(SLOT_ACTION_COPY.MODERATE);
   });
 
   it('returns empty array when hourly forecast data is empty', () => {

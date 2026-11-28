@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { UI_COPY } from '../../constants/uiTheme.ts';
-import type { OutdoorWindow } from '../../types/index.ts';
-import { formatClockTime, formatPM25Value } from '../../utils/formatting.ts';
+import type { OutdoorWindow } from '@shared/types/index.ts';
+import { formatClockTime, formatPM25Value } from '@shared/utils/formatting.ts';
 
 /**
  * Props for OutdoorWindowCard component.
@@ -13,7 +13,7 @@ export interface OutdoorWindowCardProps {
 /**
  * Displays the lowest-exposure continuous outdoor activity window from the 24h PM2.5 forecast.
  */
-export function OutdoorWindowCard({ window }: OutdoorWindowCardProps): ReactElement {
+export function OutdoorWindowCard({ window }: Readonly<OutdoorWindowCardProps>): ReactElement {
   return (
     <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-4 dark:border-teal-800/70 dark:bg-teal-950/35">
       <div className="flex flex-wrap items-center justify-between gap-2">

@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
 import {
   ASSISTANT_SYSTEM_INSTRUCTION,
   SAFE_FALLBACK_ASSISTANT_RESPONSE,
-} from '../../constants/prompts.ts';
-import { AqiCategoryId, FamilyType, RecommendationCategory } from '../../types/index.ts';
-import { parseAndValidateAssistantResponse, readStringField } from '../../utils/assistantParser.ts';
-import { buildAssistantPrompt } from '../../utils/promptBuilder.ts';
-import { sanitizeText } from '../../utils/sanitizing.ts';
-import { isOneOf, isRecord } from '../../utils/typeGuards.ts';
+} from '@shared/constants/prompts.ts';
+import { AqiCategoryId, FamilyType, RecommendationCategory } from '@shared/types/index.ts';
+import {
+  parseAndValidateAssistantResponse,
+  readStringField,
+} from '@shared/utils/assistantParser.ts';
+import { buildAssistantPrompt } from '@shared/utils/promptBuilder.ts';
+import { sanitizeText } from '@shared/utils/sanitizing.ts';
+import { isOneOf, isRecord } from '@shared/utils/typeGuards.ts';
 import {
   unwrapValidation,
   validateAqiData,
@@ -17,7 +20,7 @@ import {
   validateOptionalPm10,
   validateOptionalPm25,
   validateUserProfile,
-} from '../../utils/validation.ts';
+} from '@shared/utils/validation.ts';
 
 describe('sanitizing and validation utilities', () => {
   it('strips script tags, HTML markup, and trims whitespace', () => {
@@ -40,7 +43,6 @@ describe('sanitizing and validation utilities', () => {
     });
     expect(valid.isValid).toBe(true);
     expect(valid.value.city).toBe('Kolkata');
-
     expect(validateUserProfile({ ...DEFAULT_USER_PROFILE, commuteMode: 'JETPACK' }).isValid).toBe(
       false,
     );
@@ -55,33 +57,20 @@ describe('sanitizing and validation utilities', () => {
     expect(isOneOf('GOOD', Object.values(AqiCategoryId))).toBe(true);
     expect(isOneOf('INVALID', Object.values(AqiCategoryId))).toBe(false);
 
-    expect(
-      validateAqiData({
-        city: 'Delhi',
-        country: 'India',
-        stationName: 'Anand Vihar, Delhi',
-        provider: 'waqi',
-        aqi: 640,
-        pm25: 420,
-        no2: 65,
-        o3: 15,
-        category: AqiCategoryId.HAZARDOUS,
-        updatedAt: '2026-11-18T08:00:00Z',
-      }),
-    ).toBe(true);
-
-    expect(
-      validateAqiData({
-        city: 'Delhi',
-        country: 'India',
-        aqi: Number.NaN,
-        pm25: 50,
-        no2: 20,
-        o3: 15,
-        category: AqiCategoryId.UNHEALTHY,
-        updatedAt: '2026-11-18T08:00:00Z',
-      }),
-    ).toBe(false);
+    const liveAqi = {
+      city: 'Delhi',
+      country: 'India',
+      stationName: 'Anand Vihar, Delhi',
+      provider: 'waqi',
+      aqi: 640,
+      pm25: 420,
+      no2: 65,
+      o3: 15,
+      category: AqiCategoryId.HAZARDOUS,
+      updatedAt: '2026-11-18T08:00:00Z',
+    };
+    expect(validateAqiData(liveAqi)).toBe(true);
+    expect(validateAqiData({ ...liveAqi, aqi: Number.NaN })).toBe(false);
 
     expect(validateManualAqi('250').isValid).toBe(true);
     expect(validateManualAqi('600').isValid).toBe(false);
@@ -111,7 +100,7 @@ describe('sanitizing and validation utilities', () => {
     });
     const parsed = parseAndValidateAssistantResponse(raw);
     expect(parsed.isFallback).toBe(false);
-    expect(parsed.recommendations[0].estimatedPM25Reduction).toBe(100);
+    expect(parsed.recommendations[0]?.estimatedPM25Reduction).toBe(100);
     expect(parseAndValidateAssistantResponse('{ bad')).toEqual(SAFE_FALLBACK_ASSISTANT_RESPONSE);
   });
 

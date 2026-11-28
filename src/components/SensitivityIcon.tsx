@@ -16,7 +16,7 @@ export interface SensitivityIconProps {
 export function SensitivityIcon({
   field,
   className = 'h-4 w-4',
-}: SensitivityIconProps): ReactElement {
+}: Readonly<SensitivityIconProps>): ReactElement {
   if (field === 'hasChildren') {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>

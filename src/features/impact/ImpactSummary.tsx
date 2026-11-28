@@ -1,13 +1,13 @@
 import type { ReactElement } from 'react';
 import { ProgressBar } from '../../components/ProgressBar.tsx';
 import { SectionCard } from '../../components/SectionCard.tsx';
-import { OUTDOOR_WINDOW_DURATION_HOURS } from '../../constants/aqi.ts';
-import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { OUTDOOR_WINDOW_DURATION_HOURS } from '@shared/constants/aqi.ts';
+import { APP_TEXT, UI_LABELS } from '@shared/constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
-import type { AqiData, AssistantResponse } from '../../types/index.ts';
+import type { AqiData, AssistantResponse } from '@shared/types/index.ts';
 import { calculateTotalPM25Reduction, getAqiCategoryInfo } from '../../utils/aqiCalculations.ts';
-import { buildDailyPlanSlots } from '../../utils/dailyPlan.ts';
-import { findBestOutdoorWindow } from '../../utils/outdoorWindow.ts';
+import { buildDailyPlanSlots } from '@shared/utils/dailyPlan.ts';
+import { findBestOutdoorWindow } from '@shared/utils/outdoorWindow.ts';
 import { AqiHeroCard } from './AqiHeroCard.tsx';
 import { ManualAqiForm } from './ManualAqiForm.tsx';
 import { TodaysPlanCard } from './TodaysPlanCard.tsx';
@@ -22,6 +22,25 @@ export interface ImpactSummaryProps {
   onSubmitManualAqi: (aqi: number, pm25?: number, pm10?: number) => void;
 }
 
+function deriveImpactSummaryData(
+  aqiData: AqiData | null,
+  response: AssistantResponse | null,
+): {
+  categoryInfo: ReturnType<typeof getAqiCategoryInfo> | null;
+  combinedReduction: number;
+  bestWindow: ReturnType<typeof findBestOutdoorWindow>;
+  dailySlots: ReturnType<typeof buildDailyPlanSlots>;
+} {
+  const hourly = aqiData?.hourlyPm25 ?? [];
+  return {
+    categoryInfo: aqiData ? getAqiCategoryInfo(aqiData.category) : null,
+    combinedReduction: response ? calculateTotalPM25Reduction(response.recommendations) : 0,
+    bestWindow:
+      hourly.length > 0 ? findBestOutdoorWindow(hourly, OUTDOOR_WINDOW_DURATION_HOURS) : null,
+    dailySlots: hourly.length > 0 ? buildDailyPlanSlots(hourly) : [],
+  };
+}
+
 /**
  * Displays air quality readings (via AqiHeroCard), manual override form, Today's plan,
  * and combined PM2.5 exposure reduction metric.
@@ -33,15 +52,15 @@ export function ImpactSummary({
   isLoading,
   onEnableManualAqi,
   onSubmitManualAqi,
-}: ImpactSummaryProps): ReactElement | null {
-  if (isLoading || (!aqiData && !isAqiUnavailable)) return null;
+}: Readonly<ImpactSummaryProps>): ReactElement | null {
+  if (isLoading || (!aqiData && !isAqiUnavailable)) {
+    return null;
+  }
 
-  const categoryInfo = aqiData ? getAqiCategoryInfo(aqiData.category) : null;
-  const combinedReduction = response ? calculateTotalPM25Reduction(response.recommendations) : 0;
-  const hourly = aqiData?.hourlyPm25 ?? [];
-  const bestWindow =
-    hourly.length > 0 ? findBestOutdoorWindow(hourly, OUTDOOR_WINDOW_DURATION_HOURS) : null;
-  const dailySlots = hourly.length > 0 ? buildDailyPlanSlots(hourly) : [];
+  const { categoryInfo, combinedReduction, bestWindow, dailySlots } = deriveImpactSummaryData(
+    aqiData,
+    response,
+  );
 
   return (
     <SectionCard title={UI_LABELS.IMPACT_SECTION_TITLE}>

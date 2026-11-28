@@ -1,6 +1,6 @@
-import type { ReactElement } from 'react';
-import { UI_LABELS } from '../constants/config.ts';
-import type { AppError } from '../types/index.ts';
+import { type ReactElement, useEffect, useRef } from 'react';
+import { UI_LABELS } from '@shared/constants/config.ts';
+import type { AppError } from '@shared/types/index.ts';
 
 /**
  * Props for ErrorBanner component.
@@ -14,13 +14,27 @@ export interface ErrorBannerProps {
 /**
  * Displays a typed, user-friendly error message banner with optional retry and dismiss actions.
  */
-export function ErrorBanner({ error, onRetry, onDismiss }: ErrorBannerProps): ReactElement | null {
+export function ErrorBanner({
+  error,
+  onRetry,
+  onDismiss,
+}: Readonly<ErrorBannerProps>): ReactElement | null {
+  const alertRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error) {
+      alertRef.current?.focus();
+    }
+  }, [error]);
+
   if (!error) {
     return null;
   }
 
   return (
     <div
+      ref={alertRef}
+      tabIndex={-1}
       role="alert"
       className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-red-300 bg-red-50 px-5 py-4 text-sm text-red-950 shadow-xs dark:border-red-800/80 dark:bg-red-950/50 dark:text-red-100"
     >

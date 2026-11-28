@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
-import { PROFILE_OPTIONS, UI_LABELS } from '../../constants/config.ts';
+import { PROFILE_OPTIONS, UI_LABELS } from '@shared/constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
-import type { AqiData, UserProfile } from '../../types/index.ts';
+import type { AqiData, UserProfile } from '@shared/types/index.ts';
 import { getAqiCategoryInfo } from '../../utils/aqiCalculations.ts';
-import { formatPM25Value } from '../../utils/formatting.ts';
+import { formatPM25Value } from '@shared/utils/formatting.ts';
 
 /**
  * Props for WhyThesePanel component.
@@ -13,10 +13,7 @@ export interface WhyThesePanelProps {
   aqiData: AqiData | null;
 }
 
-function findLabel(
-  options: ReadonlyArray<{ value: string; label: string }>,
-  value: string,
-): string {
+function findLabel(options: readonly { value: string; label: string }[], value: string): string {
   return options.find((opt) => opt.value === value)?.label ?? value;
 }
 
@@ -28,7 +25,7 @@ interface ContextChip {
 /**
  * Surfaces the city, AQI, PM10, persona, sensitivities, commute, and home inputs driving AI guidance.
  */
-export function WhyThesePanel({ profile, aqiData }: WhyThesePanelProps): ReactElement {
+export function WhyThesePanel({ profile, aqiData }: Readonly<WhyThesePanelProps>): ReactElement {
   const chips: ContextChip[] = [{ id: 'city', label: aqiData ? aqiData.city : profile.city }];
 
   if (aqiData) {

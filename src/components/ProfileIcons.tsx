@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { CommuteMode, HomeType } from '../types/index.ts';
+import { CommuteMode, HomeType } from '@shared/types/index.ts';
 
 /**
  * Props for CommuteIcon component.
@@ -12,7 +12,10 @@ export interface CommuteIconProps {
 /**
  * Renders an inline SVG icon for each daily commute mode option.
  */
-export function CommuteIcon({ mode, className = 'h-4 w-4' }: CommuteIconProps): ReactElement {
+export function CommuteIcon({
+  mode,
+  className = 'h-4 w-4',
+}: Readonly<CommuteIconProps>): ReactElement {
   if (mode === CommuteMode.CAR) {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
@@ -73,7 +76,10 @@ export interface HomeTypeIconProps {
 /**
  * Renders an inline SVG icon for each dwelling type option.
  */
-export function HomeTypeIcon({ homeType, className = 'h-4 w-4' }: HomeTypeIconProps): ReactElement {
+export function HomeTypeIcon({
+  homeType,
+  className = 'h-4 w-4',
+}: Readonly<HomeTypeIconProps>): ReactElement {
   if (homeType === HomeType.APARTMENT) {
     return (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>

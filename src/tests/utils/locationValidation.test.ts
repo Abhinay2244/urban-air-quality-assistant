@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { resolveServerPort } from '../../../server/app.ts';
-import { SERVER_CONFIG } from '../../constants/server.ts';
+import { SERVER_CONFIG } from '@shared/constants/server.ts';
 import {
   buildLocationWarning,
   computeHaversineKm,
   isInsideIndia,
-} from '../../utils/locationValidation.ts';
+} from '@shared/utils/locationValidation.ts';
 
 describe('locationValidation and server PORT resolution', () => {
   it('identifies Indian coordinates and computes Haversine distance accurately', () => {

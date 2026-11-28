@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { UI_COPY } from '../../constants/uiTheme.ts';
-import type { DailyPlanSlot, OutdoorWindow } from '../../types/index.ts';
-import { formatPM25Value } from '../../utils/formatting.ts';
+import type { DailyPlanSlot, OutdoorWindow } from '@shared/types/index.ts';
+import { formatPM25Value } from '@shared/utils/formatting.ts';
 import { OutdoorWindowCard } from './OutdoorWindowCard.tsx';
 
 /**
@@ -15,7 +15,10 @@ export interface TodaysPlanCardProps {
 /**
  * Renders Today's plan (Morning/Afternoon/Evening PM2.5 slots) alongside the best 2h outdoor window.
  */
-export function TodaysPlanCard({ slots, bestWindow }: TodaysPlanCardProps): ReactElement | null {
+export function TodaysPlanCard({
+  slots,
+  bestWindow,
+}: Readonly<TodaysPlanCardProps>): ReactElement | null {
   if (slots.length === 0 && !bestWindow) {
     return null;
   }

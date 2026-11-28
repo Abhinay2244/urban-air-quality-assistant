@@ -4,9 +4,9 @@
  * Must not call backend APIs, manage AQI lookups, or render JSX elements.
  */
 import { useCallback, useState } from 'react';
-import { DEFAULT_USER_PROFILE } from '../constants/config.ts';
-import type { AppError, UserProfile } from '../types/index.ts';
-import { validateCity, validateUserProfile } from '../utils/validation.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
+import type { AppError, UserProfile } from '@shared/types/index.ts';
+import { validateCity, validateUserProfile } from '@shared/utils/validation.ts';
 
 /**
  * Per-field inline validation errors for UserProfile.
@@ -45,10 +45,13 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
 
       if (field === 'city' && typeof value === 'string') {
         const cityCheck = validateCity(value);
-        setFieldErrors((prev) => ({
-          ...prev,
-          city: cityCheck.isValid ? undefined : cityCheck.error,
-        }));
+        setFieldErrors((prev) => {
+          const nextErrors = { ...prev };
+          delete nextErrors.city;
+          return cityCheck.error !== undefined
+            ? { ...nextErrors, city: cityCheck.error }
+            : nextErrors;
+        });
         setValidationError(null);
         return;
       }
@@ -62,7 +65,9 @@ export function useProfile(initialProfile: UserProfile = DEFAULT_USER_PROFILE): 
     const result = validateUserProfile(next);
     if (!result.isValid || result.error) {
       setValidationError(result.error ?? null);
-      setFieldErrors((prev) => ({ ...prev, city: result.error }));
+      setFieldErrors((prev) =>
+        result.error !== undefined ? { ...prev, city: result.error } : prev,
+      );
       return null;
     }
 

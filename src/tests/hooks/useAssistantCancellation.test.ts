@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAssistant } from '../../hooks/useAssistant.ts';
-import type { AqiData } from '../../types/index.ts';
+import type { AqiData } from '@shared/types/index.ts';
 import {
   DEFAULT_PROFILE_FIXTURE,
   MOCK_AQI_FIXTURE,
@@ -34,7 +34,7 @@ describe('useAssistant cancellation and cooldown notice', () => {
   });
 
   it('aborts the first in-flight request when a second request starts', async () => {
-    const capturedSignals: Array<AbortSignal | undefined> = [];
+    const capturedSignals: (AbortSignal | undefined)[] = [];
 
     spyCityAqiLookup()
       .mockImplementationOnce(
@@ -46,9 +46,9 @@ describe('useAssistant cancellation and cooldown notice', () => {
             });
           }),
       )
-      .mockImplementationOnce(async (_city, signal) => {
+      .mockImplementationOnce((_city, signal) => {
         capturedSignals.push(signal);
-        return { ...MOCK_AQI_FIXTURE, city: 'Lahore' };
+        return Promise.resolve({ ...MOCK_AQI_FIXTURE, city: 'Lahore' });
       });
     spyRecommendationsCall().mockResolvedValueOnce(MOCK_ASSISTANT_RESPONSE_FIXTURE);
 

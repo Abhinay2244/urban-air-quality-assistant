@@ -1,0 +1,5 @@
+# Default repository owners for code review routing
+* @urban-air-quality-maintainers
+/server/ @urban-air-quality-maintainers
+/.github/ @urban-air-quality-maintainers
+/docs/ @urban-air-quality-maintainers

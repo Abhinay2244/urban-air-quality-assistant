@@ -1,5 +1,5 @@
 import { type MockInstance, vi } from 'vitest';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
 import * as aqiService from '../../services/aqiService.ts';
 import * as geminiService from '../../services/geminiService.ts';
 import {
@@ -8,7 +8,7 @@ import {
   type AssistantResponse,
   RecommendationCategory,
   type UserProfile,
-} from '../../types/index.ts';
+} from '@shared/types/index.ts';
 
 /** Default UserProfile fixture shared by assistant hook tests. */
 export const DEFAULT_PROFILE_FIXTURE: UserProfile = DEFAULT_USER_PROFILE;

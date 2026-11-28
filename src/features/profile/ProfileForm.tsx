@@ -1,21 +1,11 @@
-import type { FormEvent, ReactElement } from 'react';
-import { ChipToggle } from '../../components/ChipToggle.tsx';
+import type { ReactElement, SyntheticEvent } from 'react';
 import { SpinnerIcon } from '../../components/Icons.tsx';
-import { CommuteIcon, HomeTypeIcon } from '../../components/ProfileIcons.tsx';
-import { SectionCard } from '../../components/SectionCard.tsx';
-import { SegmentedControl } from '../../components/SegmentedControl.tsx';
-import { SensitivityIcon } from '../../components/SensitivityIcon.tsx';
-import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
 import type { ProfileFieldErrors } from '../../hooks/useProfile.ts';
-import type { CitySearchResult, UserProfile } from '../../types/index.ts';
+import type { CitySearchResult, UserProfile } from '@shared/types/index.ts';
 import { LocationCard } from './LocationCard.tsx';
-import {
-  COMMUTE_MODE_FIELD,
-  FAMILY_TYPE_FIELD,
-  HOME_TYPE_FIELD,
-  PROFILE_SENSITIVITY_FIELDS,
-} from './profileFields.ts';
+import { HouseholdProfileCard, LifestyleProfileCard } from './ProfilePreferenceCards.tsx';
 
 /** Props for ProfileForm feature component. */
 export interface ProfileFormProps {
@@ -29,6 +19,16 @@ export interface ProfileFormProps {
   onSubmit: () => void;
 }
 
+function formatSubmitButtonLabel(isLoading: boolean, cooldownSeconds: number): string {
+  if (isLoading) {
+    return APP_TEXT.LOADING_LABEL;
+  }
+  if (cooldownSeconds > 0) {
+    return `${UI_COPY.COOLDOWN_BUTTON_PREFIX} ${cooldownSeconds}${UI_COPY.COOLDOWN_BUTTON_SUFFIX}`;
+  }
+  return APP_TEXT.SUBMIT_LABEL;
+}
+
 /** Captures location, household sensitivities, and lifestyle details across three clear cards. */
 export function ProfileForm({
   profile,
@@ -39,81 +39,28 @@ export function ProfileForm({
   onFieldChange,
   onSelectCityResult,
   onSubmit,
-}: ProfileFormProps): ReactElement {
+}: Readonly<ProfileFormProps>): ReactElement {
   const cityError = fieldErrors.city;
   const isSubmitDisabled = isLoading || cooldownSeconds > 0 || Boolean(cityError);
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>): void => {
     event.preventDefault();
     onSubmit();
   };
-  const buttonLabel = isLoading
-    ? APP_TEXT.LOADING_LABEL
-    : cooldownSeconds > 0
-      ? `${UI_COPY.COOLDOWN_BUTTON_PREFIX} ${cooldownSeconds}${UI_COPY.COOLDOWN_BUTTON_SUFFIX}`
-      : APP_TEXT.SUBMIT_LABEL;
+  const buttonLabel = formatSubmitButtonLabel(isLoading, cooldownSeconds);
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <LocationCard
         city={profile.city}
-        cityError={cityError}
-        onCityChange={(nextCity) => onFieldChange('city', nextCity)}
-        onSelectCityResult={onSelectCityResult}
+        {...(cityError !== undefined ? { cityError } : {})}
+        onCityChange={(nextCity) => {
+          onFieldChange('city', nextCity);
+        }}
+        {...(onSelectCityResult !== undefined ? { onSelectCityResult } : {})}
       />
 
-      <SectionCard title={UI_COPY.HOUSEHOLD_CARD_TITLE}>
-        <div className="space-y-5">
-          <SegmentedControl
-            legend={FAMILY_TYPE_FIELD.legend}
-            value={profile.familyType}
-            options={FAMILY_TYPE_FIELD.options}
-            onChange={(nextValue) => onFieldChange('familyType', nextValue)}
-          />
-
-          <fieldset className="space-y-2.5">
-            <legend className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              {UI_LABELS.VULNERABILITY_GROUP_LEGEND}
-            </legend>
-            <div className="flex flex-wrap gap-2.5">
-              {PROFILE_SENSITIVITY_FIELDS.map((item) => (
-                <ChipToggle
-                  key={item.field}
-                  label={item.label}
-                  checked={profile[item.field]}
-                  icon={<SensitivityIcon field={item.field} />}
-                  onToggle={(nextChecked) => onFieldChange(item.field, nextChecked)}
-                />
-              ))}
-            </div>
-          </fieldset>
-        </div>
-      </SectionCard>
-
-      <SectionCard title={UI_COPY.LIFESTYLE_CARD_TITLE}>
-        <div className="space-y-5">
-          <SegmentedControl
-            legend={COMMUTE_MODE_FIELD.legend}
-            value={profile.commuteMode}
-            options={COMMUTE_MODE_FIELD.options.map((opt) => ({
-              value: opt.value,
-              label: opt.label,
-              icon: <CommuteIcon mode={opt.value} />,
-            }))}
-            onChange={(nextValue) => onFieldChange('commuteMode', nextValue)}
-          />
-
-          <SegmentedControl
-            legend={HOME_TYPE_FIELD.legend}
-            value={profile.homeType}
-            options={HOME_TYPE_FIELD.options.map((opt) => ({
-              value: opt.value,
-              label: opt.label,
-              icon: <HomeTypeIcon homeType={opt.value} />,
-            }))}
-            onChange={(nextValue) => onFieldChange('homeType', nextValue)}
-          />
-        </div>
-      </SectionCard>
+      <HouseholdProfileCard profile={profile} onFieldChange={onFieldChange} />
+      <LifestyleProfileCard profile={profile} onFieldChange={onFieldChange} />
 
       <button
         type="submit"

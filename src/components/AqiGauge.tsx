@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
-import { MAX_STANDARD_AQI, MIN_STANDARD_AQI } from '../constants/aqi.ts';
-import { UI_LABELS } from '../constants/config.ts';
+import { MAX_STANDARD_AQI, MIN_STANDARD_AQI } from '@shared/constants/aqi.ts';
+import { APP_TEXT, UI_LABELS } from '@shared/constants/config.ts';
 import { AQI_VISUAL_TOKENS, GAUGE_METRICS, UI_COPY } from '../constants/uiTheme.ts';
-import type { AqiCategoryInfo } from '../types/index.ts';
-import { clampRounded } from '../utils/math.ts';
+import type { AqiCategoryInfo } from '@shared/types/index.ts';
+import { clampRounded } from '@shared/utils/math.ts';
 
 /**
  * Props for AqiGauge component.
@@ -16,7 +16,7 @@ export interface AqiGaugeProps {
 /**
  * Circular inline SVG gauge displaying the real US-scale AQI (including >500 values with an above-scale note).
  */
-export function AqiGauge({ aqi, category }: AqiGaugeProps): ReactElement {
+export function AqiGauge({ aqi, category }: Readonly<AqiGaugeProps>): ReactElement {
   const { RADIUS, STROKE_WIDTH, VIEWBOX_SIZE } = GAUGE_METRICS;
   const center = VIEWBOX_SIZE / 2;
   const circumference = 2 * Math.PI * RADIUS;
@@ -26,9 +26,10 @@ export function AqiGauge({ aqi, category }: AqiGaugeProps): ReactElement {
   const progress = clampedForRing / MAX_STANDARD_AQI;
   const dashOffset = circumference * (1 - progress);
   const strokeColor = AQI_VISUAL_TOKENS[category.id].strokeHex;
+  const scalePrefix = `${UI_LABELS.AQI_LABEL} (${APP_TEXT.AQI_GAUGE_SCALE_LABEL})`;
   const ariaLabel = isAboveScale
-    ? `${UI_LABELS.AQI_LABEL} ${displayAqi} (${UI_COPY.ABOVE_SCALE_NOTE}): ${category.label}`
-    : `${UI_LABELS.AQI_LABEL} ${displayAqi}: ${category.label}`;
+    ? `${scalePrefix} ${displayAqi} (${UI_COPY.ABOVE_SCALE_NOTE}): ${category.label}`
+    : `${scalePrefix} ${displayAqi}: ${category.label}`;
 
   return (
     <div className="relative flex h-32 w-32 shrink-0 items-center justify-center">

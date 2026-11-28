@@ -10,7 +10,7 @@ export interface IconProps {
 /**
  * Brand logo mark combining clean breeze lines and a calm teal container.
  */
-export function LogoMarkIcon({ className = 'h-7 w-7' }: IconProps): ReactElement {
+export function LogoMarkIcon({ className = 'h-7 w-7' }: Readonly<IconProps>): ReactElement {
   return (
     <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" className={className}>
       <rect width="32" height="32" rx="9" className="fill-teal-700 dark:fill-teal-500" />
@@ -33,7 +33,7 @@ export function LogoMarkIcon({ className = 'h-7 w-7' }: IconProps): ReactElement
 /**
  * Sun icon for light theme switch.
  */
-export function SunIcon({ className = 'h-5 w-5' }: IconProps): ReactElement {
+export function SunIcon({ className = 'h-5 w-5' }: Readonly<IconProps>): ReactElement {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
       <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.9" />
@@ -50,7 +50,7 @@ export function SunIcon({ className = 'h-5 w-5' }: IconProps): ReactElement {
 /**
  * Moon icon for dark theme switch.
  */
-export function MoonIcon({ className = 'h-5 w-5' }: IconProps): ReactElement {
+export function MoonIcon({ className = 'h-5 w-5' }: Readonly<IconProps>): ReactElement {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
       <path
@@ -67,7 +67,9 @@ export function MoonIcon({ className = 'h-5 w-5' }: IconProps): ReactElement {
 /**
  * Inline loading spinner shown inside primary submit buttons.
  */
-export function SpinnerIcon({ className = 'h-5 w-5 animate-spin' }: IconProps): ReactElement {
+export function SpinnerIcon({
+  className = 'h-5 w-5 animate-spin',
+}: Readonly<IconProps>): ReactElement {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
@@ -84,7 +86,7 @@ export function SpinnerIcon({ className = 'h-5 w-5 animate-spin' }: IconProps): 
 /**
  * Location pin icon for city section headers.
  */
-export function LocationIcon({ className = 'h-5 w-5' }: IconProps): ReactElement {
+export function LocationIcon({ className = 'h-5 w-5' }: Readonly<IconProps>): ReactElement {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
       <path

@@ -3,7 +3,7 @@
  * Responsibility: Store Tailwind styling tokens, AQI gauge geometry, and visual copy constants.
  * Must not contain business logic, React components, or API/server configuration.
  */
-import { AqiCategoryId, RecommendationCategory } from '../types/index.ts';
+import { AqiCategoryId, RecommendationCategory } from '@shared/types/index.ts';
 
 /**
  * UI copy and section headings across the application.
@@ -56,19 +56,19 @@ export const AQI_VISUAL_TOKENS: Record<
       'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/70',
   },
   [AqiCategoryId.MODERATE]: {
-    strokeHex: '#65a30d',
+    strokeHex: '#4d7c0f',
     badgeClass:
       'bg-lime-50 text-lime-900 border-lime-300 dark:bg-lime-950/70 dark:text-lime-200 dark:border-lime-700',
     surfaceClass: 'bg-lime-50/70 border-lime-200 dark:bg-lime-950/30 dark:border-lime-800/70',
   },
   [AqiCategoryId.UNHEALTHY_SENSITIVE]: {
-    strokeHex: '#d97706',
+    strokeHex: '#b45309',
     badgeClass:
       'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-700',
     surfaceClass: 'bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/70',
   },
   [AqiCategoryId.UNHEALTHY]: {
-    strokeHex: '#ea580c',
+    strokeHex: '#c2410c',
     badgeClass:
       'bg-orange-50 text-orange-900 border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-700',
     surfaceClass:

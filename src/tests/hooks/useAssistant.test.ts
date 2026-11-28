@@ -1,11 +1,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
 import { useAssistant } from '../../hooks/useAssistant.ts';
 import * as aqiService from '../../services/aqiService.ts';
 import * as geminiService from '../../services/geminiService.ts';
-import { ErrorCode } from '../../types/index.ts';
-import { createAppError } from '../../utils/errors.ts';
+import { ErrorCode } from '@shared/types/index.ts';
+import { createAppError } from '@shared/utils/errors.ts';
 import {
   MOCK_AQI_FIXTURE,
   MOCK_ASSISTANT_RESPONSE_FIXTURE,

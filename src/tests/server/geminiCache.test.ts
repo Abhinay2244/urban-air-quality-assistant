@@ -1,20 +1,20 @@
 import { GoogleGenAI } from '@google/genai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApp } from '../../../server/app.ts';
 import {
   buildRecommendationsCacheKey,
   createRecommendationsCache,
-} from '../../../server/geminiCache.ts';
-import { generateRecommendationsText } from '../../../server/geminiHandler.ts';
-import { DEFAULT_USER_PROFILE } from '../../constants/config.ts';
-import { HTTP_STATUS } from '../../constants/http.ts';
-import { GEMINI_MODEL_CHAIN } from '../../constants/server.ts';
-import { AqiCategoryId, type AqiData, FamilyType } from '../../types/index.ts';
+} from '../../../server/providers/geminiCache.ts';
+import { generateRecommendationsText } from '../../../server/routes/geminiHandler.ts';
+import { DEFAULT_USER_PROFILE } from '@shared/constants/config.ts';
+import { HTTP_STATUS } from '@shared/constants/http.ts';
+import { GEMINI_MODEL_CHAIN } from '@shared/constants/server.ts';
+import { AqiCategoryId, type AqiData, FamilyType } from '@shared/types/index.ts';
 import {
   postRecommendationJson,
   VALID_GEMINI_PLAN_JSON,
   withEphemeralServer,
 } from '../fixtures/serverHarness.ts';
+import { createTestApp } from '../fixtures/testApp.ts';
 
 const generateMock = vi.hoisted(() =>
   vi.fn<(params: { model: string }) => Promise<{ text?: string }>>(),
@@ -33,16 +33,14 @@ const BASE_AQI: AqiData = {
 };
 
 describe('Gemini per-attempt timeout fallback and recommendations cache', () => {
-  const originalKey = process.env.GEMINI_API_KEY;
-
   afterEach(() => {
-    process.env.GEMINI_API_KEY = originalKey;
     generateMock.mockReset();
     vi.restoreAllMocks();
   });
 
   it('moves straight to the next model on per-attempt timeout without retrying', async () => {
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     generateMock
       .mockImplementationOnce(() => new Promise(() => undefined))
       .mockResolvedValueOnce({ text: '{"summary":"ok"}' });
@@ -103,23 +101,26 @@ describe('Gemini per-attempt timeout fallback and recommendations cache', () => 
   });
 
   it('serves cached valid plans over HTTP and skips caching errors or fallback responses', async () => {
-    process.env.GEMINI_API_KEY = 'test-key';
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     generateMock
       .mockResolvedValueOnce({ text: 'not-valid-json' })
       .mockResolvedValueOnce({ text: VALID_GEMINI_PLAN_JSON });
 
-    await withEphemeralServer(createApp, async (baseUrl) => {
-      const first = await postRecommendationJson(baseUrl, DEFAULT_USER_PROFILE, BASE_AQI);
-      expect(first.status).toBe(HTTP_STATUS.OK);
-      const second = await postRecommendationJson(baseUrl, DEFAULT_USER_PROFILE, BASE_AQI);
-      expect(second.status).toBe(HTTP_STATUS.OK);
-      const third = await postRecommendationJson(baseUrl, DEFAULT_USER_PROFILE, {
-        ...BASE_AQI,
-        aqi: 181,
-      });
-      expect(third.body).toEqual({ rawText: VALID_GEMINI_PLAN_JSON });
-    });
+    await withEphemeralServer(
+      () => createTestApp({ GEMINI_API_KEY: 'test-key' }),
+      async (baseUrl) => {
+        const first = await postRecommendationJson(baseUrl, DEFAULT_USER_PROFILE, BASE_AQI);
+        expect(first.status).toBe(HTTP_STATUS.OK);
+        const second = await postRecommendationJson(baseUrl, DEFAULT_USER_PROFILE, BASE_AQI);
+        expect(second.status).toBe(HTTP_STATUS.OK);
+        const third = await postRecommendationJson(baseUrl, DEFAULT_USER_PROFILE, {
+          ...BASE_AQI,
+          aqi: 181,
+        });
+        expect(third.body).toEqual({ rawText: VALID_GEMINI_PLAN_JSON });
+      },
+    );
 
     expect(generateMock).toHaveBeenCalledTimes(2);
   });

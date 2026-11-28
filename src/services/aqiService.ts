@@ -3,18 +3,18 @@
  * Responsibility: Fetch live city/coordinate AQI readings from /api/aqi and construct manual AqiData.
  * Must not manage UI state, render components, or access server API keys directly.
  */
-import { APP_TEXT } from '../constants/config.ts';
-import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants/http.ts';
-import { type AqiData, type Coordinates, ErrorCode } from '../types/index.ts';
+import { APP_TEXT } from '@shared/constants/config.ts';
+import { API_ENDPOINTS, ERROR_MESSAGES } from '@shared/constants/http.ts';
+import { type AqiData, type Coordinates, ErrorCode } from '@shared/types/index.ts';
 import { getAqiCategoryByValue } from '../utils/aqiCalculations.ts';
-import { toAppError } from '../utils/errors.ts';
+import { toAppError } from '@shared/utils/errors.ts';
 import {
   unwrapValidation,
   validateCity,
   validateManualAqi,
   validateOptionalPm10,
   validateOptionalPm25,
-} from '../utils/validation.ts';
+} from '@shared/utils/validation.ts';
 import { isLiveAqiPayload, normalizeLiveAqiPayload } from './aqiPayloadParser.ts';
 import { fetchJsonOrThrow, isAbortError } from './httpClient.ts';
 
@@ -36,16 +36,17 @@ export async function fetchAqiDataByCity(
     : `city=${encodeURIComponent(safeCity)}`;
 
   try {
-    const payload = await fetchJsonOrThrow(
-      `${API_ENDPOINTS.AQI_LIVE}?${query}`,
-      { signal },
-      ErrorCode.AQI_FETCH_ERROR,
-      ERROR_MESSAGES.AQI_FETCH_FAILED,
-      isLiveAqiPayload,
-    );
+    const payload = await fetchJsonOrThrow(`${API_ENDPOINTS.AQI_LIVE}?${query}`, {
+      ...(signal !== undefined ? { init: { signal } } : {}),
+      fallbackCode: ErrorCode.AQI_FETCH_ERROR,
+      fallbackMessage: ERROR_MESSAGES.AQI_FETCH_FAILED,
+      guard: isLiveAqiPayload,
+    });
     return normalizeLiveAqiPayload(payload, safeCity);
   } catch (error: unknown) {
-    if (isAbortError(error)) throw error;
+    if (isAbortError(error)) {
+      throw error;
+    }
     throw toAppError(error, ErrorCode.AQI_FETCH_ERROR, ERROR_MESSAGES.AQI_FETCH_FAILED);
   }
 }

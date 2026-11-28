@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../server/app.ts';
-import { API_ENDPOINTS, ERROR_CODES, HTTP_STATUS } from '../../constants/http.ts';
-import { SECURITY_HEADERS } from '../../constants/server.ts';
+import { API_ENDPOINTS, ERROR_CODES, HTTP_STATUS } from '@shared/constants/http.ts';
+import { SECURITY_HEADERS } from '@shared/constants/server.ts';
 import { withEphemeralServer } from '../fixtures/serverHarness.ts';
 
 describe('server createApp HTTP integration', () => {

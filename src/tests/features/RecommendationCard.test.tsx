@@ -1,8 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { UI_LABELS } from '../../constants/config.ts';
+import { UI_LABELS } from '@shared/constants/config.ts';
 import { RecommendationCard } from '../../features/assistant/RecommendationCard.tsx';
-import { RecommendationCategory, UrgencyLevel } from '../../types/index.ts';
+import { RecommendationCategory, UrgencyLevel } from '@shared/types/index.ts';
 
 afterEach(() => {
   cleanup();

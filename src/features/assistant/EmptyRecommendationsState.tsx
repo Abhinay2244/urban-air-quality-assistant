@@ -1,10 +1,10 @@
 import type { ReactElement } from 'react';
 import { EmptyIllustration } from '../../components/EmptyIllustration.tsx';
 import { SectionCard } from '../../components/SectionCard.tsx';
-import { APP_TEXT, UI_LABELS } from '../../constants/config.ts';
+import { APP_TEXT, UI_LABELS } from '@shared/constants/config.ts';
 import { SAMPLE_SCENARIOS } from '../../constants/samples.ts';
 import { UI_COPY } from '../../constants/uiTheme.ts';
-import type { UserProfile } from '../../types/index.ts';
+import type { UserProfile } from '@shared/types/index.ts';
 
 /**
  * Props for EmptyRecommendationsState component.
@@ -18,7 +18,7 @@ export interface EmptyRecommendationsStateProps {
  */
 export function EmptyRecommendationsState({
   onSelectSample,
-}: EmptyRecommendationsStateProps): ReactElement {
+}: Readonly<EmptyRecommendationsStateProps>): ReactElement {
   return (
     <SectionCard title={UI_LABELS.ASSISTANT_SECTION_TITLE}>
       <div className="space-y-5 py-2 text-center">
@@ -42,7 +42,9 @@ export function EmptyRecommendationsState({
                 key={scenario.label}
                 type="button"
                 aria-label={`${UI_COPY.SAMPLE_A11Y_PREFIX} ${scenario.label}`}
-                onClick={() => onSelectSample(scenario.profile)}
+                onClick={() => {
+                  onSelectSample(scenario.profile);
+                }}
                 className="inline-flex min-h-11 items-center rounded-full border border-teal-200 bg-teal-50/70 px-4 py-2 text-sm font-medium text-teal-900 transition-colors duration-150 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-200 dark:hover:bg-teal-900/70"
               >
                 {scenario.label}

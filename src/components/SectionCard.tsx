@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement, ReactNode, RefObject } from 'react';
 
 /**
  * Props for SectionCard component.
@@ -7,13 +7,22 @@ export interface SectionCardProps {
   title: string;
   subtitle?: string;
   icon?: ReactNode;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
+  headingTabIndex?: number;
   children: ReactNode;
 }
 
 /**
  * Soft surface card wrapper with consistent border, elevation, and dark-mode contrast.
  */
-export function SectionCard({ title, subtitle, icon, children }: SectionCardProps): ReactElement {
+export function SectionCard({
+  title,
+  subtitle,
+  icon,
+  headingRef,
+  headingTabIndex,
+  children,
+}: Readonly<SectionCardProps>): ReactElement {
   return (
     <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-4 flex items-center gap-2.5">
@@ -23,7 +32,13 @@ export function SectionCard({ title, subtitle, icon, children }: SectionCardProp
           </span>
         )}
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+          <h2
+            ref={headingRef}
+            tabIndex={headingTabIndex}
+            className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+          >
+            {title}
+          </h2>
           {subtitle && <p className="text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>}
         </div>
       </div>

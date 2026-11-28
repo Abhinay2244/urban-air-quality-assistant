@@ -4,7 +4,7 @@
  * Must not execute network requests, store error state, or render UI markup.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { INPUT_LIMITS } from '../constants/limits.ts';
+import { INPUT_LIMITS } from '@shared/constants/limits.ts';
 
 /**
  * Return value of the useCooldown custom hook.
@@ -28,7 +28,9 @@ export function useCooldown(
     const timer = window.setTimeout(() => {
       setCooldownSeconds((prev) => Math.max(0, prev - 1));
     }, INPUT_LIMITS.COOLDOWN_TICK_MS);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [cooldownSeconds]);
 
   const startCooldown = useCallback((): void => {
